@@ -1,0 +1,68 @@
+import type { ProviderPreset } from "../types";
+
+export const S3_VECTORS_PRESETS: ProviderPreset[] = [
+  {
+    name: "RAG Chatbot",
+    description: "100K document chunks, 1536-dim, moderate query load",
+    config: {
+      numVectors: 100_000,
+      dimensions: 1536,
+      avgKeyLengthBytes: 30,
+      filterableMetadataBytes: 200,
+      nonFilterableMetadataBytes: 500,
+      monthlyQueries: 500_000,
+      monthlyVectorsWritten: 10_000,
+      embeddingCostPerMTokens: 0.14,
+      avgTokensPerVector: 256,
+      avgTokensPerQuery: 25,
+    },
+  },
+  {
+    name: "Product Search",
+    description: "1M products, 1024-dim, high query volume",
+    config: {
+      numVectors: 1_000_000,
+      dimensions: 1024,
+      avgKeyLengthBytes: 20,
+      filterableMetadataBytes: 300,
+      nonFilterableMetadataBytes: 100,
+      monthlyQueries: 5_000_000,
+      monthlyVectorsWritten: 50_000,
+      embeddingCostPerMTokens: 0.06,
+      avgTokensPerVector: 80,
+      avgTokensPerQuery: 15,
+    },
+  },
+  {
+    name: "Large Knowledge Base",
+    description: "10M chunks, 1024-dim, steady ingestion + queries",
+    config: {
+      numVectors: 10_000_000,
+      dimensions: 1024,
+      avgKeyLengthBytes: 40,
+      filterableMetadataBytes: 150,
+      nonFilterableMetadataBytes: 1000,
+      monthlyQueries: 2_000_000,
+      monthlyVectorsWritten: 500_000,
+      embeddingCostPerMTokens: 0.14,
+      avgTokensPerVector: 375,
+      avgTokensPerQuery: 30,
+    },
+  },
+  {
+    name: "Image Similarity",
+    description: "500K images, 1024-dim Nova Multimodal Embeddings",
+    config: {
+      numVectors: 500_000,
+      dimensions: 1024,
+      avgKeyLengthBytes: 50,
+      filterableMetadataBytes: 100,
+      nonFilterableMetadataBytes: 200,
+      monthlyQueries: 1_000_000,
+      monthlyVectorsWritten: 20_000,
+      embeddingCostPerMTokens: 0,
+      avgTokensPerVector: 0,
+      avgTokensPerQuery: 0,
+    },
+  },
+];

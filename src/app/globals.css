@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #050228;
+  --color-foreground: #d8d8d8;
+  --color-surface: #09083A;
+  --color-surface-bright: #16114F;
+  --color-border: rgba(179, 179, 179, 0.2);
+  --color-accent: #8555f0;
+  --color-accent-dim: #643dd4;
+  --color-accent-glow: rgba(133, 85, 240, 0.15);
+  --color-success: #97ca6f;
+  --color-info: #5ba4f5;
+  --color-warning: #f5c542;
+  --color-muted: #a0a0a0;
+  --color-error: #F46E67;
+  --color-text-primary: #faf7f2;
+  --color-text-secondary: #b8b8b8;
+  --color-caylent-green: #cbefae;
+  --color-caylent-green-hover: #d8f5bf;
+  --color-caylent-green-active: #bee79e;
+  --color-caylent-green-text: #1b350a;
+  --color-caylent-purple-hover: #8b65f3;
+  --font-sans: var(--font-roboto);
+  --font-mono: var(--font-roboto-mono);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(133, 85, 240, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(133, 85, 240, 0.5);
+}
+
+/* Number input arrows removal */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Wizard chat bubble animation */
+.wizard-message {
+  animation: wizardFadeIn 0.3s ease-out;
+}
+
+@keyframes wizardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
