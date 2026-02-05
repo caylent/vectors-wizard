@@ -83,10 +83,10 @@ function normalizeConfig(config: Record<string, number>): CostInputs {
   const dedicatedTier = DEDICATED_TIERS[config.dedicatedTier] || "M10";
   return {
     clusterType,
-    flexOpsPerSec: config.flexOpsPerSec,
+    flexOpsPerSec: config.flexOpsPerSec ?? 100,
     dedicatedTier,
-    storageGB: config.storageGB,
-    replicaCount: config.replicaCount,
+    storageGB: config.storageGB ?? 20,
+    replicaCount: config.replicaCount ?? 3,
   };
 }
 

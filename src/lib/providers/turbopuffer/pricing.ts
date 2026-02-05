@@ -1,6 +1,8 @@
 // TurboPuffer pricing constants (Launch Plan)
 // Source: https://turbopuffer.com/pricing
 
+export { formatBytes, formatNumber, formatCurrency } from "@/lib/format";
+
 export const PRICING = {
   storage: {
     perTBMonth: 70,
@@ -62,12 +64,14 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   const storageTotalTB = storageTotalBytes / (1024 ** 4);
   const storageCost = storageTotalTB * PRICING.storage.perTBMonth;
 
-  // Writes (with batch discount estimate - assume 25% discount on average)
-  const effectiveWriteRate = PRICING.writes.basePerGB * 0.75;
+  // Writes: average of no discount and max batch discount
+  const writeDiscountFactor = 1 - PRICING.writes.batchDiscount / 2;
+  const effectiveWriteRate = PRICING.writes.basePerGB * writeDiscountFactor;
   const writesCost = inputs.monthlyWriteGB * effectiveWriteRate;
 
-  // Queries (with volume discount estimate)
-  const effectiveQueryRate = PRICING.queries.basePerGB * 0.6; // Average discount
+  // Queries: average of no discount and max volume discount
+  const queryDiscountFactor = 1 - PRICING.queries.volumeDiscount / 2;
+  const effectiveQueryRate = PRICING.queries.basePerGB * queryDiscountFactor;
   const queriesCost = inputs.monthlyQueryGB * effectiveQueryRate;
 
   const subtotal = storageCost + writesCost + queriesCost;
@@ -94,24 +98,3 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   };
 }
 
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const val = bytes / Math.pow(k, i);
-  return `${val.toFixed(val < 10 ? 2 : 1)} ${units[i]}`;
-}
-
-export function formatNumber(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
-
-export function formatCurrency(n: number): string {
-  if (n < 0.01 && n > 0) return `< $0.01`;
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `$${n.toFixed(2)}`;
-}

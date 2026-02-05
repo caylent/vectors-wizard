@@ -1,6 +1,6 @@
 import type { ProviderCostBreakdown } from "@/lib/providers/types";
 import type { PricingProvider } from "@/lib/providers/types";
-import { formatCurrency, formatNumber } from "@/lib/providers/s3-vectors/pricing";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { CostCard } from "./CostCard";
 import { CostDistributionBar } from "./CostDistributionBar";
 

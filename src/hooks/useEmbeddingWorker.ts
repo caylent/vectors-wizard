@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useEmbeddingStore, type ModelId } from "@/stores/embeddingStore";
+import type { ModelId } from "@/stores/embeddingStore";
 
 // Progress callback types
 interface LoadProgress {
@@ -12,6 +12,17 @@ interface LoadProgress {
 interface EmbedProgress {
   current?: number;
   total?: number;
+}
+
+/** Store actions the worker hook needs — passed in by the consumer to decouple from Zustand. */
+export interface EmbeddingWorkerStore {
+  selectedModel: ModelId;
+  setIsModelLoading: (loading: boolean) => void;
+  setModelLoadProgress: (progress: number) => void;
+  setIsEmbedding: (embedding: boolean) => void;
+  setEmbeddingProgress: (progress: number) => void;
+  addEmbeddings: (embeddings: Array<{ id: string; text: string; vector: number[] }>) => void;
+  setError: (error: string | null) => void;
 }
 
 // Simplified worker wrapper without comlink for compatibility
@@ -59,15 +70,23 @@ class WorkerWrapper {
     });
   }
 
-  terminate() {
-    this.worker.terminate();
+  rejectAll() {
+    for (const [, pending] of this.callbacks) {
+      pending.reject(new Error("Worker terminated"));
+    }
     this.callbacks.clear();
     this.progressCallbacks.clear();
   }
+
+  terminate() {
+    this.rejectAll();
+    this.worker.terminate();
+  }
 }
 
-export function useEmbeddingWorker() {
+export function useEmbeddingWorker(store: EmbeddingWorkerStore) {
   const workerRef = useRef<WorkerWrapper | null>(null);
+  const mountedRef = useRef(true);
   const [isReady, setIsReady] = useState(false);
   const [workerError, setWorkerError] = useState<string | null>(null);
 
@@ -79,7 +98,7 @@ export function useEmbeddingWorker() {
     setEmbeddingProgress,
     addEmbeddings,
     setError,
-  } = useEmbeddingStore();
+  } = store;
 
   // Initialize worker
   useEffect(() => {
@@ -113,7 +132,11 @@ export function useEmbeddingWorker() {
 
     return () => {
       mounted = false;
-      workerRef.current?.terminate();
+      mountedRef.current = false;
+      if (workerRef.current) {
+        workerRef.current.rejectAll();
+        workerRef.current.terminate();
+      }
       workerRef.current = null;
       setIsReady(false);
     };
@@ -134,18 +157,24 @@ export function useEmbeddingWorker() {
 
         await workerRef.current.call("loadModel", [modelId], (p) => {
           const progress = p as LoadProgress;
-          if (progress?.progress !== undefined) {
+          if (mountedRef.current && progress?.progress !== undefined) {
             setModelLoadProgress(progress.progress);
           }
         });
 
-        setModelLoadProgress(100);
+        if (mountedRef.current) {
+          setModelLoadProgress(100);
+        }
         return true;
       } catch (error) {
-        setError(error instanceof Error ? error.message : "Failed to load model");
+        if (mountedRef.current) {
+          setError(error instanceof Error ? error.message : "Failed to load model");
+        }
         return false;
       } finally {
-        setIsModelLoading(false);
+        if (mountedRef.current) {
+          setIsModelLoading(false);
+        }
       }
     },
     [setIsModelLoading, setModelLoadProgress, setError]
@@ -159,12 +188,18 @@ export function useEmbeddingWorker() {
         return null;
       }
 
+      // Capture model at call time to detect races
+      const targetModel = selectedModel;
+
       // Ensure model is loaded
       const modelInfo = await workerRef.current.call("getModelInfo", []) as { modelId: string | null; isLoaded: boolean };
-      if (!modelInfo.isLoaded || modelInfo.modelId !== selectedModel) {
-        const loaded = await loadModel(selectedModel);
+      if (!modelInfo.isLoaded || modelInfo.modelId !== targetModel) {
+        const loaded = await loadModel(targetModel);
         if (!loaded) return null;
       }
+
+      // Check if component unmounted during model load
+      if (!mountedRef.current) return null;
 
       try {
         setIsEmbedding(true);
@@ -182,11 +217,13 @@ export function useEmbeddingWorker() {
           [items, { batchSize: 16 }],
           (p) => {
             const progress = p as EmbedProgress;
-            if (progress?.current !== undefined && progress?.total !== undefined) {
+            if (mountedRef.current && progress?.current !== undefined && progress?.total !== undefined) {
               setEmbeddingProgress((progress.current / progress.total) * 100);
             }
           }
         ) as Array<{ id: string; text: string; vector: number[] }>;
+
+        if (!mountedRef.current) return null;
 
         // Add to store
         addEmbeddings(results);
@@ -194,10 +231,14 @@ export function useEmbeddingWorker() {
 
         return results;
       } catch (error) {
-        setError(error instanceof Error ? error.message : "Failed to generate embeddings");
+        if (mountedRef.current) {
+          setError(error instanceof Error ? error.message : "Failed to generate embeddings");
+        }
         return null;
       } finally {
-        setIsEmbedding(false);
+        if (mountedRef.current) {
+          setIsEmbedding(false);
+        }
       }
     },
     [selectedModel, loadModel, setIsEmbedding, setEmbeddingProgress, setError, addEmbeddings]

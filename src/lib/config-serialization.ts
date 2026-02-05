@@ -36,8 +36,7 @@ export function exportConfig(
 
 export async function importConfig(
   file: File,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  provider: PricingProvider<any>
+  provider: PricingProvider<Record<string, number>>
 ): Promise<{
   success: boolean;
   config?: Record<string, number>;

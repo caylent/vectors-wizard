@@ -1,3 +1,6 @@
+"use client";
+
+import { useId } from "react";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 export function DimensionSelect({
@@ -13,13 +16,15 @@ export function DimensionSelect({
   onChange: (v: number) => void;
   options: { value: number; label: string }[];
 }) {
+  const id = useId();
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center text-sm font-medium text-text-secondary">
+      <label htmlFor={id} className="flex items-center text-sm font-medium text-text-secondary">
         {label}
         <Tooltip text={tooltip} />
       </label>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full rounded-[4px] border border-border bg-surface-bright px-3 py-2 font-mono text-sm text-text-primary outline-none transition-all duration-200 focus:border-text-secondary/40 focus:ring-2 focus:ring-white/5"

@@ -1,3 +1,6 @@
+"use client";
+
+import { useId } from "react";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 export function InputField({
@@ -15,14 +18,16 @@ export function InputField({
   suffix?: string;
   min?: number;
 }) {
+  const id = useId();
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center text-sm font-medium text-text-secondary">
+      <label htmlFor={id} className="flex items-center text-sm font-medium text-text-secondary">
         {label}
         <Tooltip text={tooltip} />
       </label>
       <div className="flex items-center gap-2">
         <input
+          id={id}
           type="number"
           min={min}
           value={value}

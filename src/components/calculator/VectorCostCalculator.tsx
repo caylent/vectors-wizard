@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useCalculator } from "@/hooks/use-calculator";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { CalculatorShell } from "./CalculatorShell";
 import { decodeShareableState, encodeShareableState } from "@/lib/providers/shareable-state";
 
@@ -37,16 +38,18 @@ export function VectorCostCalculator({
     window.history.pushState({}, "", url.toString());
   }, []);
 
-  // Update URL when config changes significantly (debounced via effect)
+  // Debounce config so URL doesn't update on every keystroke
+  const debouncedConfig = useDebouncedValue(state.config, 300);
+
+  // Update URL when config changes (debounced)
   useEffect(() => {
-    // Only update if we're past the landing page
     if (state.mode !== "landing") {
-      const encoded = encodeShareableState(providerId, state.config);
+      const encoded = encodeShareableState(providerId, debouncedConfig);
       const url = new URL(window.location.href);
       url.searchParams.set("s", encoded);
       window.history.replaceState({}, "", url.toString());
     }
-  }, [providerId, state.config, state.mode]);
+  }, [providerId, debouncedConfig, state.mode]);
 
   return (
     <div className={`cosmic-bg noise-overlay min-h-screen ${className ?? ""}`}>

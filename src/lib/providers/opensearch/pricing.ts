@@ -1,6 +1,8 @@
 // Amazon OpenSearch Serverless pricing constants (US East)
 // Source: https://aws.amazon.com/opensearch-service/pricing/
 
+export { formatBytes, formatNumber, formatCurrency } from "@/lib/format";
+
 export const PRICING = {
   ocu: {
     perHour: 0.24,
@@ -92,15 +94,3 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   };
 }
 
-export function formatNumber(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
-
-export function formatCurrency(n: number): string {
-  if (n < 0.01 && n > 0) return `< $0.01`;
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `$${n.toFixed(2)}`;
-}

@@ -3,6 +3,26 @@
 
 import { getProvider, listProviders } from "./registry";
 
+// Translation constants used when converting between provider-specific and universal configs.
+// These are rough heuristics — not provider-documented values.
+
+/** Fraction of total metadata assumed to be filterable (used in query processing) */
+const FILTERABLE_METADATA_RATIO = 0.4;
+/** Fraction of total metadata assumed to be non-filterable (stored but not queried) */
+const NON_FILTERABLE_METADATA_RATIO = 1 - FILTERABLE_METADATA_RATIO;
+/** Overhead multiplier for index storage beyond raw vector + metadata bytes */
+const INDEX_OVERHEAD_MULTIPLIER = 1.5;
+/** Default average key length in bytes for S3 Vectors */
+const DEFAULT_KEY_LENGTH_BYTES = 30;
+/** Estimated monthly queries one OpenSearch search OCU can handle */
+const OPENSEARCH_QUERIES_PER_SEARCH_OCU = 50_000_000;
+/** Estimated monthly writes one OpenSearch indexing OCU can handle */
+const OPENSEARCH_WRITES_PER_INDEXING_OCU = 10_000_000;
+/** Estimated fraction of index scanned per query for Turbopuffer */
+const TURBOPUFFER_SCAN_FRACTION_PER_QUERY = 0.01;
+/** Estimated bytes per query response for data transfer calculations */
+const ESTIMATED_BYTES_PER_QUERY_RESPONSE = 0.001; // ~1KB in GB
+
 export interface UniversalConfig {
   // Core vector config
   numVectors: number;
@@ -82,7 +102,7 @@ export function extractUniversalConfig(providerId: string, config: Record<string
 
     case "opensearch":
       // Estimate vectors from index size
-      const avgVectorSize = (base.dimensions * 4 + base.metadataBytes) * 1.5; // with index overhead
+      const avgVectorSize = (base.dimensions * 4 + base.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER;
       return {
         ...base,
         numVectors: Math.round((config.indexSizeGB ?? 10) * 1024 * 1024 * 1024 / avgVectorSize),
@@ -123,9 +143,9 @@ export function translateToProvider(
       return {
         numVectors: universal.numVectors,
         dimensions: universal.dimensions,
-        avgKeyLengthBytes: 30,
-        filterableMetadataBytes: Math.round(universal.metadataBytes * 0.4),
-        nonFilterableMetadataBytes: Math.round(universal.metadataBytes * 0.6),
+        avgKeyLengthBytes: DEFAULT_KEY_LENGTH_BYTES,
+        filterableMetadataBytes: Math.round(universal.metadataBytes * FILTERABLE_METADATA_RATIO),
+        nonFilterableMetadataBytes: Math.round(universal.metadataBytes * NON_FILTERABLE_METADATA_RATIO),
         monthlyQueries: universal.monthlyQueries,
         monthlyVectorsWritten: universal.monthlyWrites,
         embeddingCostPerMTokens: universal.embeddingCostPerMTokens,
@@ -147,15 +167,15 @@ export function translateToProvider(
 
     case "opensearch": {
       // Estimate index size from vectors
-      const avgVectorSize = (universal.dimensions * 4 + universal.metadataBytes) * 1.5;
+      const avgVectorSize = (universal.dimensions * 4 + universal.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER;
       const indexSizeGB = (universal.numVectors * avgVectorSize) / (1024 ** 3);
       return {
         indexSizeGB: Math.max(1, Math.ceil(indexSizeGB)),
         deploymentMode: 1, // production
         monthlyQueries: universal.monthlyQueries,
         monthlyWrites: universal.monthlyWrites,
-        maxSearchOCUs: Math.max(2, Math.ceil(universal.monthlyQueries / 50_000_000)),
-        maxIndexingOCUs: Math.max(2, Math.ceil(universal.monthlyWrites / 10_000_000)),
+        maxSearchOCUs: Math.max(2, Math.ceil(universal.monthlyQueries / OPENSEARCH_QUERIES_PER_SEARCH_OCU)),
+        maxIndexingOCUs: Math.max(2, Math.ceil(universal.monthlyWrites / OPENSEARCH_WRITES_PER_INDEXING_OCU)),
       };
     }
 
@@ -173,7 +193,7 @@ export function translateToProvider(
       // Estimate storage from vectors
       const vectorBytes = universal.numVectors * universal.dimensions * 4;
       const metadataTotal = universal.numVectors * universal.metadataBytes;
-      const storageGiB = Math.ceil((vectorBytes + metadataTotal) * 1.5 / (1024 ** 3));
+      const storageGiB = Math.ceil((vectorBytes + metadataTotal) * INDEX_OVERHEAD_MULTIPLIER / (1024 ** 3));
       return {
         numObjects: universal.numVectors,
         dimensions: universal.dimensions,
@@ -187,7 +207,7 @@ export function translateToProvider(
       // Estimate data volumes
       const vectorBytes = universal.dimensions * 4 + universal.metadataBytes;
       const monthlyWriteGB = (universal.monthlyWrites * vectorBytes) / (1024 ** 3);
-      const monthlyQueryGB = (universal.monthlyQueries * universal.numVectors * 0.01 * vectorBytes) / (1024 ** 3); // ~1% scanned per query
+      const monthlyQueryGB = (universal.monthlyQueries * universal.numVectors * TURBOPUFFER_SCAN_FRACTION_PER_QUERY * vectorBytes) / (1024 ** 3);
       return {
         numVectors: universal.numVectors,
         dimensions: universal.dimensions,
@@ -225,9 +245,9 @@ export function translateToProvider(
       return {
         instanceType,
         replicaCount: 3,
-        storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * 1.5) / (1024 ** 3))),
+        storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER) / (1024 ** 3))),
         storageType: 0, // gp3
-        dataTransferGB: Math.ceil(universal.monthlyQueries * 0.001), // ~1KB per query response
+        dataTransferGB: Math.ceil(universal.monthlyQueries * ESTIMATED_BYTES_PER_QUERY_RESPONSE),
         includeConfigServers: 0,
         mongosCount: 0,
       };
@@ -278,7 +298,7 @@ export function compareAllProviders(universal: UniversalConfig): ProviderCompari
 
     try {
       const translatedConfig = translateToProvider(id, universal);
-      const costs = provider.calculateCosts(translatedConfig as never);
+      const costs = provider.calculateCosts(translatedConfig);
 
       results.push({
         providerId: id,
@@ -288,7 +308,8 @@ export function compareAllProviders(universal: UniversalConfig): ProviderCompari
         translatedConfig,
         isApplicable: true,
       });
-    } catch {
+    } catch (error) {
+      console.warn(`[compareAllProviders] Failed to calculate costs for "${id}":`, error);
       results.push({
         providerId: id,
         name,
@@ -296,7 +317,7 @@ export function compareAllProviders(universal: UniversalConfig): ProviderCompari
         monthlyCost: 0,
         translatedConfig: {},
         isApplicable: false,
-        notes: "Unable to estimate for this configuration",
+        notes: `Unable to estimate: ${error instanceof Error ? error.message : "unknown error"}`,
       });
     }
   }

@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/providers/s3-vectors/pricing";
+import { formatCurrency } from "@/lib/format";
 
 export function CostCard({
   title,

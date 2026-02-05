@@ -92,9 +92,12 @@ export function useCalculator(
     setConfig({ ...provider.defaultConfig as Record<string, number> });
   }, [provider]);
 
+  const activePresetRef = useRef(activePreset);
+  activePresetRef.current = activePreset;
+
   const handleExport = useCallback(() => {
-    exportConfig(provider.id, config, activePreset);
-  }, [provider.id, config, activePreset]);
+    exportConfig(provider.id, config, activePresetRef.current);
+  }, [provider.id, config]);
 
   const handleImport = useCallback(
     async (file: File) => {

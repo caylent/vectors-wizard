@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,8 +77,9 @@ function ModelSelector() {
 
 function TextInput() {
   const [text, setText] = useState("");
-  const { isEmbedding, embeddingProgress, error } = useEmbeddingStore();
-  const { isReady, generateEmbeddings } = useEmbeddingWorker();
+  const store = useEmbeddingStore();
+  const { isEmbedding, embeddingProgress, error } = store;
+  const { isReady, generateEmbeddings } = useEmbeddingWorker(store);
 
   const handleEmbed = async () => {
     if (!text.trim()) return;
@@ -135,6 +137,14 @@ function TextInput() {
 
 function EmbeddingsList() {
   const { embeddings, removeEmbedding, clearEmbeddings } = useEmbeddingStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: embeddings.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 60, // ~60px per item
+    overscan: 5,
+  });
 
   if (embeddings.length === 0) {
     return (
@@ -164,28 +174,44 @@ function EmbeddingsList() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {embeddings.map((emb) => (
-            <div
-              key={emb.id}
-              className="p-2 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors"
-            >
-              <div className="flex justify-between items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate">{emb.text}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {emb.vector.length}d · [{emb.vector.slice(0, 3).map((v) => v.toFixed(3)).join(", ")}...]
+        <div ref={scrollRef} className="max-h-[400px] overflow-y-auto">
+          <div
+            style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const emb = embeddings[virtualItem.index];
+              return (
+                <div
+                  key={emb.id}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="pb-2"
+                >
+                  <div className="p-2 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm truncate">{emb.text}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {emb.vector.length}d · [{emb.vector.slice(0, 3).map((v) => v.toFixed(3)).join(", ")}...]
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeEmbedding(emb.id)}
+                        className="text-muted-foreground hover:text-destructive text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => removeEmbedding(emb.id)}
-                  className="text-muted-foreground hover:text-destructive text-xs"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-4 flex gap-2">

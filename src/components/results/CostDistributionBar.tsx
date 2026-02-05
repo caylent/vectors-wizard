@@ -9,11 +9,12 @@ export function CostDistributionBar({
 
   return (
     <div className="space-y-2">
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface" role="meter" aria-label="Cost distribution" aria-valuemin={0} aria-valuemax={100}>
         {lineItems.map((item) => (
           <div
             key={item.label}
             className="transition-all duration-500"
+            title={`${item.label}: ${((item.amount / total) * 100).toFixed(0)}%`}
             style={{
               width: `${(item.amount / total) * 100}%`,
               backgroundColor: item.color,

@@ -1,6 +1,8 @@
 // S3 Vectors pricing constants (US East - N. Virginia)
 // Source: https://aws.amazon.com/s3/pricing/ (S3 Vectors section)
 
+export { formatBytes, formatNumber, formatCurrency } from "@/lib/format";
+
 export const PRICING = {
   storage: {
     perGBMonth: 0.06,
@@ -74,46 +76,60 @@ export interface CostBreakdown {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
-  const vectorDataBytes = 4 * inputs.dimensions; // float32
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    numVectors: Math.max(0, inputs.numVectors || 0),
+    dimensions: Math.max(0, inputs.dimensions || 0),
+    avgKeyLengthBytes: Math.max(0, inputs.avgKeyLengthBytes || 0),
+    filterableMetadataBytes: Math.max(0, inputs.filterableMetadataBytes || 0),
+    nonFilterableMetadataBytes: Math.max(0, inputs.nonFilterableMetadataBytes || 0),
+    monthlyQueries: Math.max(0, inputs.monthlyQueries || 0),
+    monthlyVectorsWritten: Math.max(0, inputs.monthlyVectorsWritten || 0),
+    embeddingCostPerMTokens: Math.max(0, inputs.embeddingCostPerMTokens || 0),
+    avgTokensPerVector: Math.max(0, inputs.avgTokensPerVector || 0),
+    avgTokensPerQuery: Math.max(0, inputs.avgTokensPerQuery || 0),
+  };
+
+  const vectorDataBytes = 4 * safe.dimensions; // float32
   const totalPerVectorBytes =
     vectorDataBytes +
-    inputs.avgKeyLengthBytes +
-    inputs.filterableMetadataBytes +
-    inputs.nonFilterableMetadataBytes;
+    safe.avgKeyLengthBytes +
+    safe.filterableMetadataBytes +
+    safe.nonFilterableMetadataBytes;
 
   // Storage
-  const storageTotalBytes = totalPerVectorBytes * inputs.numVectors;
+  const storageTotalBytes = totalPerVectorBytes * safe.numVectors;
   const storageTotalGB = storageTotalBytes / (1024 ** 3);
   const storageMonthlyCost = storageTotalGB * PRICING.storage.perGBMonth;
 
   // Write
-  const writeTotalBytes = totalPerVectorBytes * inputs.monthlyVectorsWritten;
+  const writeTotalBytes = totalPerVectorBytes * safe.monthlyVectorsWritten;
   const writeTotalGB = writeTotalBytes / (1024 ** 3);
   const writeMonthlyCost = writeTotalGB * PRICING.write.perGBUploaded;
 
   // Query
   const queryApiCost =
-    (inputs.monthlyQueries / 1_000_000) * PRICING.query.perMillionCalls;
+    (safe.monthlyQueries / 1_000_000) * PRICING.query.perMillionCalls;
 
   // Data processed: excludes non-filterable metadata
   const queryVectorSizeBytes =
-    vectorDataBytes + inputs.avgKeyLengthBytes + inputs.filterableMetadataBytes;
+    vectorDataBytes + safe.avgKeyLengthBytes + safe.filterableMetadataBytes;
 
   // Total data processed = per-query-scan-size * num_queries
   // per-query-scan-size = avg_vector_size * num_vectors_in_index
-  const perQueryScanBytes = queryVectorSizeBytes * inputs.numVectors;
-  const totalDataProcessedBytes = perQueryScanBytes * inputs.monthlyQueries;
+  const perQueryScanBytes = queryVectorSizeBytes * safe.numVectors;
+  const totalDataProcessedBytes = perQueryScanBytes * safe.monthlyQueries;
   const totalDataProcessedTB = totalDataProcessedBytes / (1024 ** 4);
 
   // Tiered pricing for data processed
   let dataProcessedCost: number;
-  if (inputs.numVectors <= PRICING.query.dataProcessed.tier1.upToVectors) {
+  if (safe.numVectors <= PRICING.query.dataProcessed.tier1.upToVectors) {
     dataProcessedCost =
       totalDataProcessedTB * PRICING.query.dataProcessed.tier1.perTB;
   } else {
     // Blended: first 100K vectors at tier1 rate, rest at tier2
     const tier1Fraction =
-      PRICING.query.dataProcessed.tier1.upToVectors / inputs.numVectors;
+      PRICING.query.dataProcessed.tier1.upToVectors / safe.numVectors;
     const tier2Fraction = 1 - tier1Fraction;
     const blendedRate =
       tier1Fraction * PRICING.query.dataProcessed.tier1.perTB +
@@ -124,9 +140,9 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   const queryMonthlyCost = queryApiCost + dataProcessedCost;
 
   // Embedding
-  const costPerToken = inputs.embeddingCostPerMTokens / 1_000_000;
-  const embeddingWriteTokens = inputs.monthlyVectorsWritten * inputs.avgTokensPerVector;
-  const embeddingQueryTokens = inputs.monthlyQueries * inputs.avgTokensPerQuery;
+  const costPerToken = safe.embeddingCostPerMTokens / 1_000_000;
+  const embeddingWriteTokens = safe.monthlyVectorsWritten * safe.avgTokensPerVector;
+  const embeddingQueryTokens = safe.monthlyQueries * safe.avgTokensPerQuery;
   const embeddingTotalTokens = embeddingWriteTokens + embeddingQueryTokens;
   const embeddingWriteCost = embeddingWriteTokens * costPerToken;
   const embeddingQueryCost = embeddingQueryTokens * costPerToken;
@@ -164,24 +180,3 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   };
 }
 
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const val = bytes / Math.pow(k, i);
-  return `${val.toFixed(val < 10 ? 2 : 1)} ${units[i]}`;
-}
-
-export function formatNumber(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
-
-export function formatCurrency(n: number): string {
-  if (n < 0.01 && n > 0) return `< $0.01`;
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `$${n.toFixed(2)}`;
-}

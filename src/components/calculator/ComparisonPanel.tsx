@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   extractUniversalConfig,
   compareAllProviders,
@@ -27,11 +28,14 @@ export function ComparisonPanel({
   const [hiddenProviders, setHiddenProviders] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(true);
 
+  // Debounce config to avoid running 9 provider calculations on every keystroke
+  const debouncedConfig = useDebouncedValue(currentConfig, 150);
+
   // Extract universal config and compare all providers
   const comparisons = useMemo(() => {
-    const universal = extractUniversalConfig(currentProviderId, currentConfig);
+    const universal = extractUniversalConfig(currentProviderId, debouncedConfig);
     return compareAllProviders(universal);
-  }, [currentProviderId, currentConfig]);
+  }, [currentProviderId, debouncedConfig]);
 
   // Filter visible providers
   const visibleComparisons = comparisons.filter(
@@ -61,6 +65,7 @@ export function ComparisonPanel({
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
         className="flex w-full items-center justify-between p-4 text-left"
       >
         <div className="flex items-center gap-3">

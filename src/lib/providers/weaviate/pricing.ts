@@ -1,6 +1,8 @@
 // Weaviate Cloud pricing constants (Flex Plan)
 // Source: https://weaviate.io/pricing
 
+export { formatBytes, formatNumber, formatCurrency } from "@/lib/format";
+
 export const PRICING = {
   dimensions: {
     perMillion: 0.0139,
@@ -79,19 +81,6 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   };
 }
 
-export function formatNumber(n: number): string {
-  if (n >= 1_000_000_000_000) return `${(n / 1_000_000_000_000).toFixed(1)}T`;
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
-
-export function formatCurrency(n: number): string {
-  if (n < 0.01 && n > 0) return `< $0.01`;
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `$${n.toFixed(2)}`;
-}
 
 // Estimate storage based on vectors
 export function estimateStorageGiB(numObjects: number, dimensions: number, metadataBytes: number): number {
