@@ -37,10 +37,17 @@ export function WizardChat({
   }, [messages]);
 
   return (
-    <div className="rounded-xl border border-border bg-surface">
+    <div className="overflow-hidden rounded-[16px] border border-border bg-gradient-to-br from-surface to-surface/80">
+      {/* Header bar */}
+      <div className="border-b border-border bg-surface/60 px-6 py-3 backdrop-blur-sm">
+        <h3 className="text-sm font-medium tracking-[0.15em] uppercase text-text-secondary">
+          Cost Wizard
+        </h3>
+      </div>
+
       <div
         ref={scrollRef}
-        className="max-h-[600px] space-y-4 overflow-y-auto p-6"
+        className="chat-scroll-fade max-h-[600px] space-y-4 overflow-y-auto p-6"
       >
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-3">
@@ -72,7 +79,7 @@ export function WizardChat({
                 {msg.step.type === "info" && (
                   <button
                     onClick={onSwitchToConfigurator}
-                    className="rounded-lg border border-border bg-surface-bright px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+                    className="rounded-[4px] border border-border bg-surface-bright px-4 py-2 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-text-secondary/30 hover:text-text-primary"
                   >
                     Switch to full configurator
                   </button>
@@ -89,7 +96,7 @@ export function WizardChat({
             Wizard complete. Results are shown on the right.{" "}
             <button
               onClick={onSwitchToConfigurator}
-              className="text-accent hover:underline"
+              className="text-caylent-green hover:underline"
             >
               Switch to configurator
             </button>{" "}

@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #050228;
+  --color-background: #0a0a0f;
   --color-foreground: #d8d8d8;
-  --color-surface: #09083A;
-  --color-surface-bright: #16114F;
-  --color-border: rgba(179, 179, 179, 0.2);
+  --color-surface: #131318;
+  --color-surface-bright: #1c1c24;
+  --color-border: rgba(255, 255, 255, 0.08);
   --color-accent: #8555f0;
   --color-accent-dim: #643dd4;
-  --color-accent-glow: rgba(133, 85, 240, 0.15);
+  --color-accent-glow: rgba(133, 85, 240, 0.12);
   --color-success: #97ca6f;
   --color-info: #5ba4f5;
   --color-warning: #f5c542;
-  --color-muted: #a0a0a0;
+  --color-muted: #707078;
   --color-error: #F46E67;
-  --color-text-primary: #faf7f2;
-  --color-text-secondary: #b8b8b8;
+  --color-text-primary: #f0ede8;
+  --color-text-secondary: #9a9aa0;
   --color-caylent-green: #cbefae;
   --color-caylent-green-hover: #d8f5bf;
   --color-caylent-green-active: #bee79e;
@@ -23,12 +23,21 @@
   --color-caylent-purple-hover: #8b65f3;
   --font-sans: var(--font-roboto);
   --font-mono: var(--font-roboto-mono);
+  --font-size-hero: clamp(3rem, 6vw, 5.625rem);
+  --font-size-hero-sub: clamp(1.125rem, 2vw, 1.5rem);
+  --font-size-body: 1.0625rem;
+  --line-height-hero: 0.95;
+  --line-height-body: 1.6;
+  --spacing-section: clamp(3rem, 6vw, 6rem);
+  --max-width-container: 1320px;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 /* Custom scrollbar */
@@ -39,11 +48,11 @@ body {
   background: var(--color-surface);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(133, 85, 240, 0.3);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(133, 85, 240, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Number input arrows removal */
@@ -56,9 +65,130 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Wizard chat bubble animation */
+/* ── Cosmic background — very subtle, neutral ─────────────── */
+.cosmic-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0a0f 0%, #0e0e14 100%);
+}
+
+/* ── Noise texture overlay ────────────────────────────────── */
+.noise-overlay {
+  position: relative;
+}
+.noise-overlay::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ── Floating orbs — desaturated, barely visible ──────────── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.orb-purple {
+  width: 400px;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.orb-green {
+  width: 300px;
+  height: 300px;
+  background: rgba(203, 239, 174, 0.015);
+  animation-delay: -10s;
+  animation-direction: reverse;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+/* ── Dot grid pattern — neutral ───────────────────────────── */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Card glow — subtle lift, no color ────────────────────── */
+.card-glow {
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.card-glow:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* ── Gradient border (premium) — subtle neutral ───────────── */
+.gradient-border {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(203, 239, 174, 0.08), rgba(255, 255, 255, 0.06));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Results glow — dark depth, minimal color ─────────────── */
+.results-glow {
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.3),
+    0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Staggered fade-in-up entrance ────────────────────────── */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out both;
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+
+/* ── Chat scroll fade ─────────────────────────────────────── */
+.chat-scroll-fade {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
+}
+
+/* ── Wizard chat bubble animation (200ms) ─────────────────── */
 .wizard-message {
-  animation: wizardFadeIn 0.3s ease-out;
+  animation: wizardFadeIn 0.2s ease-out;
 }
 
 @keyframes wizardFadeIn {

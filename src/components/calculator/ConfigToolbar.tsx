@@ -29,22 +29,22 @@ export function ConfigToolbar({
   };
 
   return (
-    <div className="mb-6 flex items-center gap-2">
+    <div className="mb-8 flex items-center gap-2">
       <button
         onClick={onExport}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+        className="rounded-[4px] border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-text-secondary/30 hover:text-text-primary"
       >
         Export
       </button>
       <button
         onClick={() => fileRef.current?.click()}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+        className="rounded-[4px] border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-text-secondary/30 hover:text-text-primary"
       >
         Import
       </button>
       <button
         onClick={onReset}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+        className="rounded-[4px] border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-text-secondary/30 hover:text-text-primary"
       >
         Reset
       </button>

@@ -12,8 +12,8 @@ export function WizardMessage({
       <div
         className={`wizard-message max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           sender === "bot"
-            ? "rounded-bl-md bg-surface-bright text-text-primary"
-            : "rounded-br-md bg-accent/15 text-accent"
+            ? "rounded-bl-md bg-surface-bright/80 text-text-primary backdrop-blur-sm"
+            : "rounded-br-md border border-border bg-surface text-text-primary"
         }`}
       >
         {text}

@@ -10,12 +10,12 @@ export function ModeSelector({
   if (mode === "landing") return null;
 
   return (
-    <div className="mb-6 flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
+    <div className="mb-8 flex items-center gap-1 rounded-[12px] border border-border bg-surface/80 p-1 backdrop-blur-sm">
       <button
         onClick={() => onModeChange("wizard")}
-        className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
           mode === "wizard"
-            ? "bg-accent/15 text-accent shadow-sm"
+            ? "bg-surface-bright text-text-primary shadow-sm ring-1 ring-border"
             : "text-muted hover:text-text-secondary"
         }`}
       >
@@ -23,9 +23,9 @@ export function ModeSelector({
       </button>
       <button
         onClick={() => onModeChange("configurator")}
-        className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
           mode === "configurator"
-            ? "bg-accent/15 text-accent shadow-sm"
+            ? "bg-surface-bright text-text-primary shadow-sm ring-1 ring-border"
             : "text-muted hover:text-text-secondary"
         }`}
       >

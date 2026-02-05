@@ -13,13 +13,13 @@ export function VectorCostCalculator({
   const state = useCalculator(providerId);
 
   return (
-    <div className={`min-h-screen bg-background ${className ?? ""}`}>
+    <div className={`cosmic-bg noise-overlay min-h-screen ${className ?? ""}`}>
       {/* Header */}
-      <header className="border-b border-border bg-surface/50 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
+      <header className="border-b border-border bg-background/60 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[1320px] items-center gap-4 px-6 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-bright">
             <svg
-              className="h-5 w-5 text-accent"
+              className="h-5 w-5 text-text-secondary"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -29,7 +29,7 @@ export function VectorCostCalculator({
             </svg>
           </div>
           <div>
-            <h1 className="text-lg font-medium text-text-primary">
+            <h1 className="text-xl font-medium text-text-primary">
               {state.provider.name} Cost Calculator
             </h1>
             <p className="text-xs text-muted">{state.provider.regionLabel}</p>
@@ -37,7 +37,7 @@ export function VectorCostCalculator({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-[1320px] px-6 py-12 lg:py-16">
         <CalculatorShell state={state} />
       </main>
     </div>

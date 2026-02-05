@@ -10,8 +10,8 @@ export function PresetBar({
   onApply: (name: string) => void;
 }) {
   return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
+    <section className="mb-10">
+      <h2 className="mb-5 text-xs font-medium uppercase tracking-[0.15em] text-muted">
         Presets
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -19,16 +19,16 @@ export function PresetBar({
           <button
             key={preset.name}
             onClick={() => onApply(preset.name)}
-            className={`rounded-xl border px-4 py-3 text-left transition-all ${
+            className={`card-glow rounded-[16px] border px-5 py-4 text-left transition-all ${
               activePreset === preset.name
-                ? "border-accent bg-accent/10 shadow-[0_0_20px_rgba(133,85,240,0.1)]"
-                : "border-border bg-surface hover:border-accent/40"
+                ? "border-caylent-green/30 bg-caylent-green/5 ring-1 ring-caylent-green/10"
+                : "border-border bg-surface hover:border-text-secondary/20"
             }`}
           >
             <div
               className={`text-sm font-medium ${
                 activePreset === preset.name
-                  ? "text-accent"
+                  ? "text-caylent-green"
                   : "text-text-primary"
               }`}
             >

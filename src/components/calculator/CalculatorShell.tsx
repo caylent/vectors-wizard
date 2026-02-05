@@ -31,19 +31,21 @@ export function CalculatorShell({ state }: { state: CalculatorState }) {
     <>
       {/* Presets — always visible (except on landing) */}
       {mode !== "landing" && (
-        <PresetBar
-          presets={provider.presets}
-          activePreset={activePreset}
-          onApply={applyPreset}
-        />
+        <div className="animate-fade-in-up">
+          <PresetBar
+            presets={provider.presets}
+            activePreset={activePreset}
+            onApply={applyPreset}
+          />
+        </div>
       )}
 
       {mode === "landing" && <LandingView onSelect={setMode} />}
 
       {mode !== "landing" && (
-        <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
+        <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:gap-12">
           {/* Left column */}
-          <div>
+          <div className="animate-fade-in-up animate-delay-100">
             <ModeSelector mode={mode} onModeChange={setMode} />
             <ConfigToolbar
               onExport={exportConfig}
@@ -67,8 +69,8 @@ export function CalculatorShell({ state }: { state: CalculatorState }) {
             )}
           </div>
 
-          {/* Right column */}
-          <div>
+          {/* Right column — sticky results */}
+          <div className="animate-fade-in-up animate-delay-200 lg:sticky lg:top-24 lg:self-start">
             <ResultsPanel
               breakdown={breakdown}
               config={config}

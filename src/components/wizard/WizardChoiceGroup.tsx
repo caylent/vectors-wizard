@@ -16,10 +16,10 @@ export function WizardChoiceGroup({
           key={choice.label}
           onClick={() => onSelect(choice.label)}
           disabled={disabled}
-          className={`rounded-xl border px-4 py-2.5 text-left transition-all ${
+          className={`card-glow rounded-[12px] border px-5 py-3 text-left transition-all ${
             disabled
               ? "cursor-not-allowed border-border/50 bg-surface/50 opacity-50"
-              : "border-border bg-surface hover:border-accent/40 hover:shadow-[0_0_12px_rgba(133,85,240,0.08)]"
+              : "border-border bg-surface hover:border-text-secondary/20"
           }`}
         >
           <div className="text-sm font-medium text-text-primary">

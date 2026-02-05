@@ -9,7 +9,7 @@ export function CostDistributionBar({
 
   return (
     <div className="space-y-2">
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-surface">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface">
         {lineItems.map((item) => (
           <div
             key={item.label}

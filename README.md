@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vectors Wizard
 
-## Getting Started
+A cost calculator for Amazon S3 Vectors that helps estimate monthly operational costs for vector workloads.
 
-First, run the development server:
+## Features
+
+- **Guided Wizard** - Interactive questionnaire that walks through use case, embedding model, and workload parameters
+- **Manual Configurator** - Direct control over all pricing inputs for advanced users
+- **Quickstart Presets** - Pre-configured templates for common use cases (RAG chatbot, product search, knowledge base, image similarity)
+- **Real-time Cost Breakdown** - Itemized costs for storage, writes, queries, and embeddings
+- **Import/Export** - Save and share configurations as JSON
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How It Works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The calculator estimates costs across four dimensions:
 
-## Learn More
+| Component | What it measures |
+|-----------|------------------|
+| **Storage** | Monthly cost to store vectors (based on count, dimensions, metadata) |
+| **Writes** | Cost to ingest/update vectors |
+| **Queries** | API call costs + data scanned per query |
+| **Embeddings** | Token costs for your embedding model (optional) |
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Built with Next.js 16, React 19, and Tailwind CSS.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The core is a **provider abstraction** (`src/lib/providers/`) that makes it easy to add calculators for other vector databases. Each provider defines:
+- Pricing rates and calculation logic
+- Configuration fields
+- Wizard steps and presets
 
-## Deploy on Vercel
+State is managed via two hooks:
+- `useCalculator` - Config, mode switching, cost computation
+- `useWizard` - Conversation flow and step progression
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev      # Development server
+npm run build    # Production build
+npm run lint     # ESLint
+```

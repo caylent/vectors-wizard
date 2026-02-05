@@ -56,7 +56,7 @@ export function WizardNumberInput({
             }
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            className="w-full rounded border border-border bg-surface px-3 py-2 font-mono text-sm text-text-primary outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent-glow disabled:opacity-50"
+            className="w-full rounded-[4px] border border-border bg-surface-bright px-3 py-2 font-mono text-sm text-text-primary outline-none transition-all duration-200 focus:border-text-secondary/40 focus:ring-2 focus:ring-white/5 disabled:opacity-50"
           />
           {field.suffix && (
             <span className="shrink-0 text-xs text-muted">{field.suffix}</span>
@@ -66,7 +66,7 @@ export function WizardNumberInput({
       <button
         onClick={handleSubmit}
         disabled={disabled}
-        className="rounded bg-caylent-green px-4 py-1.5 text-xs font-medium text-caylent-green-text transition-colors hover:bg-caylent-green-hover active:bg-caylent-green-active disabled:opacity-50"
+        className="rounded-[4px] bg-caylent-green px-4 py-1.5 text-xs font-medium text-caylent-green-text transition-all duration-200 hover:bg-caylent-green-hover hover:shadow-[0_0_20px_rgba(203,239,174,0.15)] active:bg-caylent-green-active disabled:opacity-50"
       >
         Continue
       </button>

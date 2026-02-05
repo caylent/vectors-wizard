@@ -16,13 +16,13 @@ export function ResultsPanel({
   provider: PricingProvider<Record<string, number>>;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Total cost card */}
-      <div className="rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/5 to-transparent p-6 shadow-[0_0_40px_rgba(133,85,240,0.08)]">
-        <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+      <div className="gradient-border results-glow rounded-2xl bg-gradient-to-br from-surface-bright to-surface p-8">
+        <div className="mb-1 text-sm uppercase tracking-[0.15em] text-muted">
           Estimated Monthly Cost
         </div>
-        <div className="font-mono text-4xl font-bold text-caylent-green">
+        <div className="font-mono text-5xl font-medium text-caylent-green">
           {formatCurrency(breakdown.totalMonthlyCost)}
         </div>
         <div className="mt-1 text-xs text-muted">
@@ -57,7 +57,7 @@ export function ResultsPanel({
 
       {/* Query note for S3 Vectors */}
       {config.nonFilterableMetadataBytes > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5">
+        <div className="card-glow rounded-[16px] border border-border bg-surface p-5">
           <div className="rounded-md bg-surface-bright px-2.5 py-1.5 text-[11px] leading-relaxed text-text-secondary">
             Non-filterable metadata ({config.nonFilterableMetadataBytes} bytes/vec) is excluded from query
             data-processed charges. Moving large payloads to non-filterable keys saves on query costs.
@@ -66,8 +66,8 @@ export function ResultsPanel({
       )}
 
       {/* Pricing reference */}
-      <div className="rounded-xl border border-border bg-surface p-5">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
+      <div className="card-glow rounded-[16px] border border-border bg-surface p-5">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.15em] text-muted">
           Pricing Reference
         </h3>
         <div className="space-y-1.5 font-mono text-xs text-text-secondary">
