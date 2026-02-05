@@ -8,10 +8,17 @@ import { LandingView } from "./LandingView";
 import { Configurator } from "@/components/configurator/Configurator";
 import { WizardChat } from "@/components/wizard/WizardChat";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
+import { ComparisonPanel } from "./ComparisonPanel";
 
 type CalculatorState = ReturnType<typeof useCalculator>;
 
-export function CalculatorShell({ state }: { state: CalculatorState }) {
+interface CalculatorShellProps {
+  state: CalculatorState;
+  onProviderChange?: (providerId: string) => void;
+  getShareableLink?: () => string;
+}
+
+export function CalculatorShell({ state, onProviderChange, getShareableLink }: CalculatorShellProps) {
   const {
     provider,
     config,
@@ -51,6 +58,7 @@ export function CalculatorShell({ state }: { state: CalculatorState }) {
               onExport={exportConfig}
               onImport={importConfig}
               onReset={resetConfig}
+              onShare={getShareableLink}
             />
             {mode === "wizard" && (
               <WizardChat
@@ -70,12 +78,19 @@ export function CalculatorShell({ state }: { state: CalculatorState }) {
           </div>
 
           {/* Right column — sticky results */}
-          <div className="animate-fade-in-up animate-delay-200 lg:sticky lg:top-24 lg:self-start">
+          <div className="animate-fade-in-up animate-delay-200 lg:sticky lg:top-24 lg:self-start space-y-6">
             <ResultsPanel
               breakdown={breakdown}
               config={config}
               provider={provider}
             />
+            {onProviderChange && (
+              <ComparisonPanel
+                currentProviderId={provider.id}
+                currentConfig={config}
+                onSelectProvider={onProviderChange}
+              />
+            )}
           </div>
         </div>
       )}

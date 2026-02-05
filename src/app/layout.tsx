@@ -15,9 +15,9 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vectors Wizard | S3 Vectors Cost Calculator",
+  title: "Vectors Wizard",
   description:
-    "Estimate monthly costs for operating vector workloads on Amazon S3 Vectors",
+    "Estimate vector database costs and explore index algorithms with interactive 3D visualizations",
 };
 
 export default function RootLayout({

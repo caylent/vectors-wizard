@@ -6,13 +6,16 @@ export function ConfigToolbar({
   onExport,
   onImport,
   onReset,
+  onShare,
 }: {
   onExport: () => void;
   onImport: (file: File) => Promise<{ success: boolean; error?: string }>;
   onReset: () => void;
+  onShare?: () => string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,8 +31,29 @@ export function ConfigToolbar({
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const handleShare = async () => {
+    if (!onShare) return;
+    const url = onShare();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  };
+
   return (
     <div className="mb-8 flex items-center gap-2">
+      {onShare && (
+        <button
+          onClick={handleShare}
+          className="rounded-[4px] border border-[#8555f0]/50 bg-[#8555f0]/10 px-3 py-1.5 text-xs font-medium text-[#8555f0] transition-all duration-200 hover:bg-[#8555f0]/20"
+        >
+          {copied ? "Copied!" : "Share"}
+        </button>
+      )}
       <button
         onClick={onExport}
         className="rounded-[4px] border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-text-secondary/30 hover:text-text-primary"

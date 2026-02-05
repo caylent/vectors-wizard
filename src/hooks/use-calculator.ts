@@ -1,24 +1,43 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { getProvider } from "@/lib/providers/registry";
 import type { PricingProvider, ProviderCostBreakdown } from "@/lib/providers/types";
 import { exportConfig, importConfig } from "@/lib/config-serialization";
 
 export type CalculatorMode = "landing" | "wizard" | "configurator";
 
-export function useCalculator(providerId: string = "s3-vectors") {
+export function useCalculator(
+  providerId: string = "s3-vectors",
+  initialConfig?: Record<string, number> | null
+) {
   const provider = useMemo(() => {
     const p = getProvider(providerId);
     if (!p) throw new Error(`Provider "${providerId}" not found`);
     return p;
   }, [providerId]);
 
-  const [config, setConfig] = useState<Record<string, number>>(
-    () => ({ ...provider.defaultConfig as Record<string, number> })
-  );
-  const [mode, setMode] = useState<CalculatorMode>("landing");
+  // Track previous provider to detect changes
+  const prevProviderIdRef = useRef(providerId);
+
+  const [config, setConfig] = useState<Record<string, number>>(() => {
+    if (initialConfig) return { ...initialConfig };
+    return { ...provider.defaultConfig as Record<string, number> };
+  });
+
+  // Start in configurator mode if we have initial config (from shared link)
+  const [mode, setMode] = useState<CalculatorMode>(initialConfig ? "configurator" : "landing");
   const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  // Reset config when provider changes
+  useEffect(() => {
+    if (prevProviderIdRef.current !== providerId) {
+      prevProviderIdRef.current = providerId;
+      setConfig({ ...provider.defaultConfig as Record<string, number> });
+      setActivePreset(null);
+      // Don't reset mode - keep user in their current view
+    }
+  }, [providerId, provider]);
 
   const breakdown: ProviderCostBreakdown = useMemo(
     () => provider.calculateCosts(config),
