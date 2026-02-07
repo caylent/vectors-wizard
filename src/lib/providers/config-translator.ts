@@ -1,136 +1,31 @@
 // Translates a "universal" config to provider-specific configs
 // This allows comparing costs across providers with different pricing models
 
+import type { UniversalConfig } from "./types";
 import { getProvider, listProviders } from "./registry";
 
-// Translation constants used when converting between provider-specific and universal configs.
-// These are rough heuristics — not provider-documented values.
+// Re-export for consumers
+export type { UniversalConfig } from "./types";
 
-/** Fraction of total metadata assumed to be filterable (used in query processing) */
-const FILTERABLE_METADATA_RATIO = 0.4;
-/** Fraction of total metadata assumed to be non-filterable (stored but not queried) */
-const NON_FILTERABLE_METADATA_RATIO = 1 - FILTERABLE_METADATA_RATIO;
-/** Overhead multiplier for index storage beyond raw vector + metadata bytes */
-const INDEX_OVERHEAD_MULTIPLIER = 1.5;
-/** Default average key length in bytes for S3 Vectors */
-const DEFAULT_KEY_LENGTH_BYTES = 30;
-/** Estimated monthly queries one OpenSearch search OCU can handle */
-const OPENSEARCH_QUERIES_PER_SEARCH_OCU = 50_000_000;
-/** Estimated monthly writes one OpenSearch indexing OCU can handle */
-const OPENSEARCH_WRITES_PER_INDEXING_OCU = 10_000_000;
-/** Estimated fraction of index scanned per query for Turbopuffer */
-const TURBOPUFFER_SCAN_FRACTION_PER_QUERY = 0.01;
-/** Estimated bytes per query response for data transfer calculations */
-const ESTIMATED_BYTES_PER_QUERY_RESPONSE = 0.001; // ~1KB in GB
-
-export interface UniversalConfig {
-  // Core vector config
-  numVectors: number;
-  dimensions: number;
-  metadataBytes: number;
-
-  // Usage patterns
-  monthlyQueries: number;
-  monthlyWrites: number;
-
-  // Embeddings (optional)
-  embeddingCostPerMTokens: number;
-  avgTokensPerVector: number;
-  avgTokensPerQuery: number;
-}
+/** Fallback when a provider doesn't implement toUniversalConfig. */
+const DEFAULT_UNIVERSAL: UniversalConfig = {
+  numVectors: 100_000,
+  dimensions: 1536,
+  metadataBytes: 200,
+  monthlyQueries: 500_000,
+  monthlyWrites: 50_000,
+  embeddingCostPerMTokens: 0,
+  avgTokensPerVector: 256,
+  avgTokensPerQuery: 25,
+};
 
 // Extract universal config from any provider's config
 export function extractUniversalConfig(providerId: string, config: Record<string, number>): UniversalConfig {
-  const base: UniversalConfig = {
-    numVectors: 100_000,
-    dimensions: 1536,
-    metadataBytes: 200,
-    monthlyQueries: 500_000,
-    monthlyWrites: 50_000,
-    embeddingCostPerMTokens: 0,
-    avgTokensPerVector: 256,
-    avgTokensPerQuery: 25,
-  };
-
-  // Map provider-specific fields to universal
-  switch (providerId) {
-    case "s3-vectors":
-      return {
-        ...base,
-        numVectors: config.numVectors ?? base.numVectors,
-        dimensions: config.dimensions ?? base.dimensions,
-        metadataBytes: (config.filterableMetadataBytes ?? 0) + (config.nonFilterableMetadataBytes ?? 0),
-        monthlyQueries: config.monthlyQueries ?? base.monthlyQueries,
-        monthlyWrites: config.monthlyVectorsWritten ?? base.monthlyWrites,
-        embeddingCostPerMTokens: config.embeddingCostPerMTokens ?? 0,
-        avgTokensPerVector: config.avgTokensPerVector ?? base.avgTokensPerVector,
-        avgTokensPerQuery: config.avgTokensPerQuery ?? base.avgTokensPerQuery,
-      };
-
-    case "pinecone":
-      return {
-        ...base,
-        numVectors: config.numVectors ?? base.numVectors,
-        dimensions: config.dimensions ?? base.dimensions,
-        metadataBytes: config.metadataBytes ?? base.metadataBytes,
-        monthlyQueries: config.monthlyQueries ?? base.monthlyQueries,
-        monthlyWrites: config.monthlyUpserts ?? base.monthlyWrites,
-        embeddingCostPerMTokens: config.embeddingCostPerMTokens ?? 0,
-        avgTokensPerVector: config.avgTokensPerVector ?? base.avgTokensPerVector,
-        avgTokensPerQuery: config.avgTokensPerQuery ?? base.avgTokensPerQuery,
-      };
-
-    case "zilliz":
-      return {
-        ...base,
-        numVectors: config.numVectors ?? base.numVectors,
-        dimensions: config.dimensions ?? base.dimensions,
-        metadataBytes: config.metadataBytes ?? base.metadataBytes,
-        monthlyQueries: config.monthlyQueries ?? base.monthlyQueries,
-        monthlyWrites: config.monthlyWrites ?? base.monthlyWrites,
-      };
-
-    case "weaviate":
-      return {
-        ...base,
-        numVectors: config.numObjects ?? base.numVectors,
-        dimensions: config.dimensions ?? base.dimensions,
-        metadataBytes: base.metadataBytes,
-        monthlyQueries: base.monthlyQueries,
-        monthlyWrites: base.monthlyWrites,
-      };
-
-    case "opensearch":
-      // Estimate vectors from index size
-      const avgVectorSize = (base.dimensions * 4 + base.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER;
-      return {
-        ...base,
-        numVectors: Math.round((config.indexSizeGB ?? 10) * 1024 * 1024 * 1024 / avgVectorSize),
-        dimensions: base.dimensions,
-        metadataBytes: base.metadataBytes,
-        monthlyQueries: config.monthlyQueries ?? base.monthlyQueries,
-        monthlyWrites: config.monthlyWrites ?? base.monthlyWrites,
-      };
-
-    case "mongodb":
-    case "mongodb-selfhosted":
-    case "milvus":
-      // Infrastructure-based - use defaults
-      return base;
-
-    case "turbopuffer":
-      return {
-        ...base,
-        numVectors: config.numVectors ?? base.numVectors,
-        dimensions: config.dimensions ?? base.dimensions,
-        metadataBytes: config.metadataBytes ?? base.metadataBytes,
-        monthlyQueries: base.monthlyQueries,
-        monthlyWrites: base.monthlyWrites,
-      };
-
-    default:
-      return base;
+  const provider = getProvider(providerId);
+  if (provider?.toUniversalConfig) {
+    return provider.toUniversalConfig(config);
   }
+  return DEFAULT_UNIVERSAL;
 }
 
 // Translate universal config to a specific provider's config
@@ -138,143 +33,11 @@ export function translateToProvider(
   targetProviderId: string,
   universal: UniversalConfig
 ): Record<string, number> {
-  switch (targetProviderId) {
-    case "s3-vectors":
-      return {
-        numVectors: universal.numVectors,
-        dimensions: universal.dimensions,
-        avgKeyLengthBytes: DEFAULT_KEY_LENGTH_BYTES,
-        filterableMetadataBytes: Math.round(universal.metadataBytes * FILTERABLE_METADATA_RATIO),
-        nonFilterableMetadataBytes: Math.round(universal.metadataBytes * NON_FILTERABLE_METADATA_RATIO),
-        monthlyQueries: universal.monthlyQueries,
-        monthlyVectorsWritten: universal.monthlyWrites,
-        embeddingCostPerMTokens: universal.embeddingCostPerMTokens,
-        avgTokensPerVector: universal.avgTokensPerVector,
-        avgTokensPerQuery: universal.avgTokensPerQuery,
-      };
-
-    case "pinecone":
-      return {
-        numVectors: universal.numVectors,
-        dimensions: universal.dimensions,
-        metadataBytes: universal.metadataBytes,
-        monthlyQueries: universal.monthlyQueries,
-        monthlyUpserts: universal.monthlyWrites,
-        embeddingCostPerMTokens: universal.embeddingCostPerMTokens,
-        avgTokensPerVector: universal.avgTokensPerVector,
-        avgTokensPerQuery: universal.avgTokensPerQuery,
-      };
-
-    case "opensearch": {
-      // Estimate index size from vectors
-      const avgVectorSize = (universal.dimensions * 4 + universal.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER;
-      const indexSizeGB = (universal.numVectors * avgVectorSize) / (1024 ** 3);
-      return {
-        indexSizeGB: Math.max(1, Math.ceil(indexSizeGB)),
-        deploymentMode: 1, // production
-        monthlyQueries: universal.monthlyQueries,
-        monthlyWrites: universal.monthlyWrites,
-        maxSearchOCUs: Math.max(2, Math.ceil(universal.monthlyQueries / OPENSEARCH_QUERIES_PER_SEARCH_OCU)),
-        maxIndexingOCUs: Math.max(2, Math.ceil(universal.monthlyWrites / OPENSEARCH_WRITES_PER_INDEXING_OCU)),
-      };
-    }
-
-    case "zilliz":
-      return {
-        numVectors: universal.numVectors,
-        dimensions: universal.dimensions,
-        metadataBytes: universal.metadataBytes,
-        monthlyQueries: universal.monthlyQueries,
-        monthlyWrites: universal.monthlyWrites,
-        includeFreeTier: 0, // Show full costs for comparison
-      };
-
-    case "weaviate": {
-      // Estimate storage from vectors
-      const vectorBytes = universal.numVectors * universal.dimensions * 4;
-      const metadataTotal = universal.numVectors * universal.metadataBytes;
-      const storageGiB = Math.ceil((vectorBytes + metadataTotal) * INDEX_OVERHEAD_MULTIPLIER / (1024 ** 3));
-      return {
-        numObjects: universal.numVectors,
-        dimensions: universal.dimensions,
-        replicationFactor: 1,
-        storageGiB: Math.max(1, storageGiB),
-        backupGiB: Math.max(1, Math.ceil(storageGiB * 0.5)),
-      };
-    }
-
-    case "turbopuffer": {
-      // Estimate data volumes
-      const vectorBytes = universal.dimensions * 4 + universal.metadataBytes;
-      const monthlyWriteGB = (universal.monthlyWrites * vectorBytes) / (1024 ** 3);
-      const monthlyQueryGB = (universal.monthlyQueries * universal.numVectors * TURBOPUFFER_SCAN_FRACTION_PER_QUERY * vectorBytes) / (1024 ** 3);
-      return {
-        numVectors: universal.numVectors,
-        dimensions: universal.dimensions,
-        metadataBytes: universal.metadataBytes,
-        monthlyWriteGB: Math.max(1, Math.ceil(monthlyWriteGB)),
-        monthlyQueryGB: Math.max(1, Math.ceil(monthlyQueryGB)),
-        plan: 0, // launch
-      };
-    }
-
-    case "mongodb": {
-      // Estimate required tier based on vector count
-      // M10: ~100K vectors, M30: ~1M, M50: ~5M
-      let tier = 0; // M10
-      if (universal.numVectors > 5_000_000) tier = 4; // M50
-      else if (universal.numVectors > 1_000_000) tier = 2; // M30
-      else if (universal.numVectors > 500_000) tier = 1; // M20
-      return {
-        clusterType: 1, // dedicated
-        flexOpsPerSec: 100,
-        dedicatedTier: tier,
-        storageGB: Math.max(20, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes)) / (1024 ** 3))),
-        replicaCount: 3,
-      };
-    }
-
-    case "mongodb-selfhosted": {
-      // Estimate instance type based on memory needs
-      const memoryNeededGB = (universal.numVectors * universal.dimensions * 4) / (1024 ** 3) * 2;
-      let instanceType = 0; // t3.medium
-      if (memoryNeededGB > 32) instanceType = 6; // r5.2xlarge
-      else if (memoryNeededGB > 16) instanceType = 5; // r5.xlarge
-      else if (memoryNeededGB > 8) instanceType = 3; // m5.xlarge
-      else if (memoryNeededGB > 4) instanceType = 2; // m5.large
-      return {
-        instanceType,
-        replicaCount: 3,
-        storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * INDEX_OVERHEAD_MULTIPLIER) / (1024 ** 3))),
-        storageType: 0, // gp3
-        dataTransferGB: Math.ceil(universal.monthlyQueries * ESTIMATED_BYTES_PER_QUERY_RESPONSE),
-        includeConfigServers: 0,
-        mongosCount: 0,
-      };
-    }
-
-    case "milvus": {
-      // Similar to MongoDB self-hosted
-      const memoryNeededGB = (universal.numVectors * universal.dimensions * 4) / (1024 ** 3) * 2;
-      let instanceType = 0; // t3.medium
-      if (memoryNeededGB > 32) instanceType = 6; // r5.2xlarge
-      else if (memoryNeededGB > 16) instanceType = 5; // r5.xlarge
-      else if (memoryNeededGB > 8) instanceType = 3; // m5.xlarge
-      else if (memoryNeededGB > 4) instanceType = 2; // m5.large
-      return {
-        instanceType,
-        instanceCount: 1,
-        storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * 1.5) / (1024 ** 3))),
-        storageType: 0, // gp3
-        dataTransferGB: Math.ceil(universal.monthlyQueries * 0.001),
-        includeEtcd: 1,
-        includeMinio: 0,
-      };
-    }
-
-    default:
-      return {};
+  const provider = getProvider(targetProviderId);
+  if (provider?.fromUniversalConfig) {
+    return provider.fromUniversalConfig(universal);
   }
+  return {};
 }
 
 // Calculate costs for all providers based on a universal config

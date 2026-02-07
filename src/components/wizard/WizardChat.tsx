@@ -12,11 +12,13 @@ export function WizardChat({
   entryStepId,
   onConfigPatch,
   onSwitchToConfigurator,
+  config,
 }: {
   steps: WizardStep[];
   entryStepId: string;
   onConfigPatch: (patch: Record<string, number | string>) => void;
   onSwitchToConfigurator: () => void;
+  config: Record<string, number>;
 }) {
   const {
     messages,
@@ -25,7 +27,7 @@ export function WizardChat({
     answeredSteps,
     submitChoice,
     submitNumbers,
-  } = useWizard(steps, entryStepId, onConfigPatch);
+  } = useWizard(steps, entryStepId, onConfigPatch, config);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 

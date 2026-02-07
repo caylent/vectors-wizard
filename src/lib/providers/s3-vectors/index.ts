@@ -9,11 +9,10 @@ import {
 } from "./pricing";
 import { S3_VECTORS_PRESETS } from "./presets";
 import { S3_VECTORS_WIZARD_STEPS } from "./wizard-steps";
+import { DIMENSION_SELECT_OPTIONS } from "../constants";
 
 export type { CostInputs } from "./pricing";
 export { formatBytes, formatNumber, formatCurrency } from "./pricing";
-
-const DIMENSION_OPTIONS = [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096] as const;
 
 const CONFIG_FIELDS: ProviderConfigField[] = [
   {
@@ -32,7 +31,7 @@ const CONFIG_FIELDS: ProviderConfigField[] = [
       "Must match your embedding model output. Common: 1024 (Nova Embeddings, Voyage 4, Cohere v4), 1536 (Cohere v4, OpenAI small), 3072 (Nova Embeddings, OpenAI large).",
     type: "select",
     section: "Index Configuration",
-    options: DIMENSION_OPTIONS.map((d) => ({ value: d, label: `${d}` })),
+    options: DIMENSION_SELECT_OPTIONS,
   },
   {
     key: "avgKeyLengthBytes",
@@ -200,4 +199,26 @@ export const s3VectorsProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "Prices shown for US East (N. Virginia). Excludes data transfer, KMS, and GetVectors/ListVectors/DeleteVectors request charges.",
+  toUniversalConfig: (config) => ({
+    numVectors: config.numVectors ?? 100_000,
+    dimensions: config.dimensions ?? 1536,
+    metadataBytes: (config.filterableMetadataBytes ?? 0) + (config.nonFilterableMetadataBytes ?? 0),
+    monthlyQueries: config.monthlyQueries ?? 500_000,
+    monthlyWrites: config.monthlyVectorsWritten ?? 50_000,
+    embeddingCostPerMTokens: config.embeddingCostPerMTokens ?? 0,
+    avgTokensPerVector: config.avgTokensPerVector ?? 256,
+    avgTokensPerQuery: config.avgTokensPerQuery ?? 25,
+  }),
+  fromUniversalConfig: (universal) => ({
+    numVectors: universal.numVectors,
+    dimensions: universal.dimensions,
+    avgKeyLengthBytes: 30,
+    filterableMetadataBytes: Math.round(universal.metadataBytes * 0.4),
+    nonFilterableMetadataBytes: Math.round(universal.metadataBytes * 0.6),
+    monthlyQueries: universal.monthlyQueries,
+    monthlyVectorsWritten: universal.monthlyWrites,
+    embeddingCostPerMTokens: universal.embeddingCostPerMTokens,
+    avgTokensPerVector: universal.avgTokensPerVector,
+    avgTokensPerQuery: universal.avgTokensPerQuery,
+  }),
 };

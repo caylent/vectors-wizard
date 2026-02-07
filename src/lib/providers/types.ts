@@ -56,6 +56,18 @@ export interface ProviderPreset {
   config: Record<string, number>;
 }
 
+/** Standard cross-provider config shape used for provider comparison. */
+export interface UniversalConfig {
+  numVectors: number;
+  dimensions: number;
+  metadataBytes: number;
+  monthlyQueries: number;
+  monthlyWrites: number;
+  embeddingCostPerMTokens: number;
+  avgTokensPerVector: number;
+  avgTokensPerQuery: number;
+}
+
 export interface PricingProvider<TConfig = Record<string, number>> {
   id: string;
   name: string;
@@ -69,4 +81,9 @@ export interface PricingProvider<TConfig = Record<string, number>> {
   entryStepId: string;
   pricingReference: { label: string; value: string }[];
   pricingDisclaimer: string;
+
+  /** Extract a universal config from this provider's config (for cross-provider comparison). */
+  toUniversalConfig?: (config: Record<string, number>) => UniversalConfig;
+  /** Translate a universal config into this provider's numeric config (for cross-provider comparison). */
+  fromUniversalConfig?: (universal: UniversalConfig) => Record<string, number>;
 }

@@ -66,6 +66,7 @@ export function CalculatorShell({ state, onProviderChange, getShareableLink }: C
                 entryStepId={provider.entryStepId}
                 onConfigPatch={patchConfig}
                 onSwitchToConfigurator={() => setMode("configurator")}
+                config={config}
               />
             )}
             {mode === "configurator" && (

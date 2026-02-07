@@ -8,11 +8,10 @@ import {
 } from "./pricing";
 import { ZILLIZ_PRESETS } from "./presets";
 import { ZILLIZ_WIZARD_STEPS } from "./wizard-steps";
+import { DIMENSION_SELECT_OPTIONS } from "../constants";
 
 export type { CostInputs } from "./pricing";
 export { formatBytes, formatNumber } from "./pricing";
-
-const DIMENSION_OPTIONS = [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096] as const;
 
 const CONFIG_FIELDS: ProviderConfigField[] = [
   {
@@ -29,7 +28,7 @@ const CONFIG_FIELDS: ProviderConfigField[] = [
     tooltip: "Dimension count of your embedding vectors.",
     type: "select",
     section: "Collection Configuration",
-    options: DIMENSION_OPTIONS.map((d) => ({ value: d, label: `${d}` })),
+    options: DIMENSION_SELECT_OPTIONS,
   },
   {
     key: "metadataBytes",
@@ -126,4 +125,22 @@ export const zillizProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "Serverless pricing. Free tier available. Enterprise and Dedicated tiers have different pricing models.",
+  toUniversalConfig: (config) => ({
+    numVectors: config.numVectors ?? 100_000,
+    dimensions: config.dimensions ?? 1536,
+    metadataBytes: config.metadataBytes ?? 200,
+    monthlyQueries: config.monthlyQueries ?? 500_000,
+    monthlyWrites: config.monthlyWrites ?? 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => ({
+    numVectors: universal.numVectors,
+    dimensions: universal.dimensions,
+    metadataBytes: universal.metadataBytes,
+    monthlyQueries: universal.monthlyQueries,
+    monthlyWrites: universal.monthlyWrites,
+    includeFreeTier: 0,
+  }),
 };

@@ -220,4 +220,31 @@ export const milvusProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "AWS US East pricing estimates. Actual costs may vary. Does not include S3 storage costs if using S3 instead of MinIO. Milvus software is free under Apache 2.0 license.",
+  toUniversalConfig: () => ({
+    numVectors: 100_000,
+    dimensions: 1536,
+    metadataBytes: 200,
+    monthlyQueries: 500_000,
+    monthlyWrites: 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => {
+    const memoryNeededGB = (universal.numVectors * universal.dimensions * 4) / (1024 ** 3) * 2;
+    let instanceType = 0; // t3.medium
+    if (memoryNeededGB > 32) instanceType = 6; // r5.2xlarge
+    else if (memoryNeededGB > 16) instanceType = 5; // r5.xlarge
+    else if (memoryNeededGB > 8) instanceType = 3; // m5.xlarge
+    else if (memoryNeededGB > 4) instanceType = 2; // m5.large
+    return {
+      instanceType,
+      instanceCount: 1,
+      storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * 1.5) / (1024 ** 3))),
+      storageType: 0, // gp3
+      dataTransferGB: Math.ceil(universal.monthlyQueries * 0.001),
+      includeEtcd: 1,
+      includeMinio: 0,
+    };
+  },
 };

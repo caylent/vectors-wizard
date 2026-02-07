@@ -136,4 +136,30 @@ export const opensearchProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "US East (N. Virginia) pricing. OCUs auto-scale and are billed per-second. Vector search collections require dedicated OCUs.",
+  toUniversalConfig: (config) => {
+    // Heuristic: estimate vector count from index size assuming 1536 dims, 200 bytes metadata
+    const avgVectorSize = (1536 * 4 + 200) * 1.5;
+    return {
+      numVectors: Math.round((config.indexSizeGB ?? 10) * 1024 * 1024 * 1024 / avgVectorSize),
+      dimensions: 1536,
+      metadataBytes: 200,
+      monthlyQueries: config.monthlyQueries ?? 500_000,
+      monthlyWrites: config.monthlyWrites ?? 50_000,
+      embeddingCostPerMTokens: 0,
+      avgTokensPerVector: 256,
+      avgTokensPerQuery: 25,
+    };
+  },
+  fromUniversalConfig: (universal) => {
+    const avgVectorSize = (universal.dimensions * 4 + universal.metadataBytes) * 1.5;
+    const indexSizeGB = (universal.numVectors * avgVectorSize) / (1024 ** 3);
+    return {
+      indexSizeGB: Math.max(1, Math.ceil(indexSizeGB)),
+      deploymentMode: 1, // production
+      monthlyQueries: universal.monthlyQueries,
+      monthlyWrites: universal.monthlyWrites,
+      maxSearchOCUs: Math.max(2, Math.ceil(universal.monthlyQueries / 50_000_000)),
+      maxIndexingOCUs: Math.max(2, Math.ceil(universal.monthlyWrites / 10_000_000)),
+    };
+  },
 };

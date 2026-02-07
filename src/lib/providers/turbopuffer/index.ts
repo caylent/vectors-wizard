@@ -7,11 +7,10 @@ import {
 } from "./pricing";
 import { TURBOPUFFER_PRESETS } from "./presets";
 import { TURBOPUFFER_WIZARD_STEPS } from "./wizard-steps";
+import { DIMENSION_SELECT_OPTIONS, createMinimumLineItem } from "../constants";
 
 export type { CostInputs } from "./pricing";
 export { formatBytes } from "./pricing";
-
-const DIMENSION_OPTIONS = [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096] as const;
 
 const CONFIG_FIELDS: ProviderConfigField[] = [
   {
@@ -28,7 +27,7 @@ const CONFIG_FIELDS: ProviderConfigField[] = [
     tooltip: "4 bytes per dimension (float32) or 2 bytes (float16).",
     type: "select",
     section: "Dataset Configuration",
-    options: DIMENSION_OPTIONS.map((d) => ({ value: d, label: `${d}` })),
+    options: DIMENSION_SELECT_OPTIONS,
   },
   {
     key: "metadataBytes",
@@ -137,17 +136,8 @@ export const turbopufferProvider: PricingProvider<CostInputs> = {
       },
     ];
 
-    // Add minimum notice if applicable
     if (raw.subtotal < raw.minimum) {
-      lineItems.push({
-        category: "minimum",
-        label: "Plan Minimum",
-        amount: raw.minimum - raw.subtotal,
-        details: {
-          Note: `${planName} plan requires $${raw.minimum}/mo minimum`,
-        },
-        color: "#f59e0b",
-      });
+      lineItems.push(createMinimumLineItem(raw.minimum - raw.subtotal, `${planName} plan requires $${raw.minimum}/mo minimum`));
     }
 
     return { lineItems, totalMonthlyCost: raw.totalMonthlyCost };
@@ -163,4 +153,27 @@ export const turbopufferProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "Pricing based on logical bytes stored. Write/query costs include volume discount estimates. Actual costs may vary based on batch sizes and query patterns.",
+  toUniversalConfig: (config) => ({
+    numVectors: config.numVectors ?? 100_000,
+    dimensions: config.dimensions ?? 1536,
+    metadataBytes: config.metadataBytes ?? 200,
+    monthlyQueries: 500_000,
+    monthlyWrites: 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => {
+    const vectorBytes = universal.dimensions * 4 + universal.metadataBytes;
+    const monthlyWriteGB = (universal.monthlyWrites * vectorBytes) / (1024 ** 3);
+    const monthlyQueryGB = (universal.monthlyQueries * universal.numVectors * 0.01 * vectorBytes) / (1024 ** 3);
+    return {
+      numVectors: universal.numVectors,
+      dimensions: universal.dimensions,
+      metadataBytes: universal.metadataBytes,
+      monthlyWriteGB: Math.max(1, Math.ceil(monthlyWriteGB)),
+      monthlyQueryGB: Math.max(1, Math.ceil(monthlyQueryGB)),
+      plan: 0, // launch
+    };
+  },
 };

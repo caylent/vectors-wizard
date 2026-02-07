@@ -224,4 +224,32 @@ export const mongodbSelfhostedProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "AWS US East pricing estimates. Vector Search requires MongoDB 7.0+. MongoDB Community Edition is free under the SSPL license. Consider operational overhead for self-managed deployments.",
+  toUniversalConfig: () => ({
+    numVectors: 100_000,
+    dimensions: 1536,
+    metadataBytes: 200,
+    monthlyQueries: 500_000,
+    monthlyWrites: 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => {
+    // Estimate instance type from memory needs (2x raw vector size for working set)
+    const memoryNeededGB = (universal.numVectors * universal.dimensions * 4) / (1024 ** 3) * 2;
+    let instanceType = 0; // t3.medium
+    if (memoryNeededGB > 32) instanceType = 6; // r5.2xlarge
+    else if (memoryNeededGB > 16) instanceType = 5; // r5.xlarge
+    else if (memoryNeededGB > 8) instanceType = 3; // m5.xlarge
+    else if (memoryNeededGB > 4) instanceType = 2; // m5.large
+    return {
+      instanceType,
+      replicaCount: 3,
+      storageGB: Math.max(50, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes) * 1.5) / (1024 ** 3))),
+      storageType: 0, // gp3
+      dataTransferGB: Math.ceil(universal.monthlyQueries * 0.001),
+      includeConfigServers: 0,
+      mongosCount: 0,
+    };
+  },
 };

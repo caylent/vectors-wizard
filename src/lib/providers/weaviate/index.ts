@@ -7,11 +7,10 @@ import {
 } from "./pricing";
 import { WEAVIATE_PRESETS } from "./presets";
 import { WEAVIATE_WIZARD_STEPS } from "./wizard-steps";
+import { DIMENSION_SELECT_OPTIONS, createMinimumLineItem } from "../constants";
 
 export type { CostInputs } from "./pricing";
 export { formatNumber } from "./pricing";
-
-const DIMENSION_OPTIONS = [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096] as const;
 
 const CONFIG_FIELDS: ProviderConfigField[] = [
   {
@@ -28,7 +27,7 @@ const CONFIG_FIELDS: ProviderConfigField[] = [
     tooltip: "Dimension count of your embedding vectors.",
     type: "select",
     section: "Collection Configuration",
-    options: DIMENSION_OPTIONS.map((d) => ({ value: d, label: `${d}` })),
+    options: DIMENSION_SELECT_OPTIONS,
   },
   {
     key: "replicationFactor",
@@ -113,17 +112,8 @@ export const weaviateProvider: PricingProvider<CostInputs> = {
       },
     ];
 
-    // Add minimum notice if applicable
     if (raw.subtotal < PRICING.minimum) {
-      lineItems.push({
-        category: "minimum",
-        label: "Plan Minimum",
-        amount: PRICING.minimum - raw.subtotal,
-        details: {
-          Note: `Flex plan requires $${PRICING.minimum}/mo minimum`,
-        },
-        color: "#f59e0b",
-      });
+      lineItems.push(createMinimumLineItem(PRICING.minimum - raw.subtotal, `Flex plan requires $${PRICING.minimum}/mo minimum`));
     }
 
     return { lineItems, totalMonthlyCost: raw.totalMonthlyCost };
@@ -139,4 +129,26 @@ export const weaviateProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "Flex plan pricing. Premium plan offers lower per-unit rates but higher minimum ($400/mo).",
+  toUniversalConfig: (config) => ({
+    numVectors: config.numObjects ?? 100_000,
+    dimensions: config.dimensions ?? 1536,
+    metadataBytes: 200,
+    monthlyQueries: 500_000,
+    monthlyWrites: 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => {
+    const vectorBytes = universal.numVectors * universal.dimensions * 4;
+    const metadataTotal = universal.numVectors * universal.metadataBytes;
+    const storageGiB = Math.ceil((vectorBytes + metadataTotal) * 1.5 / (1024 ** 3));
+    return {
+      numObjects: universal.numVectors,
+      dimensions: universal.dimensions,
+      replicationFactor: 1,
+      storageGiB: Math.max(1, storageGiB),
+      backupGiB: Math.max(1, Math.ceil(storageGiB * 0.5)),
+    };
+  },
 };

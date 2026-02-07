@@ -161,4 +161,28 @@ export const mongodbProvider: PricingProvider<CostInputs> = {
   ],
   pricingDisclaimer:
     "AWS US East pricing. Vector Search is included with M10+ clusters. Prices shown for standard replica set (typically 3 nodes).",
+  toUniversalConfig: () => ({
+    numVectors: 100_000,
+    dimensions: 1536,
+    metadataBytes: 200,
+    monthlyQueries: 500_000,
+    monthlyWrites: 50_000,
+    embeddingCostPerMTokens: 0,
+    avgTokensPerVector: 256,
+    avgTokensPerQuery: 25,
+  }),
+  fromUniversalConfig: (universal) => {
+    // Estimate tier from vector count: M10 ~100K, M20 ~500K, M30 ~1M, M50 ~5M
+    let tier = 0; // M10
+    if (universal.numVectors > 5_000_000) tier = 4; // M50
+    else if (universal.numVectors > 1_000_000) tier = 2; // M30
+    else if (universal.numVectors > 500_000) tier = 1; // M20
+    return {
+      clusterType: 1, // dedicated
+      flexOpsPerSec: 100,
+      dedicatedTier: tier,
+      storageGB: Math.max(20, Math.ceil((universal.numVectors * (universal.dimensions * 4 + universal.metadataBytes)) / (1024 ** 3))),
+      replicaCount: 3,
+    };
+  },
 };

@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+
+# temporary capture/demo files
+capture-twitter.mjs
+twitter-captures/
+twitter-captures.zip
+public/twitter-*.html

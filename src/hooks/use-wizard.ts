@@ -15,7 +15,8 @@ export interface WizardMessage {
 export function useWizard(
   steps: WizardStep[],
   entryStepId: string,
-  onConfigPatch: (patch: Record<string, number | string>) => void
+  onConfigPatch: (patch: Record<string, number | string>) => void,
+  parentConfig: Record<string, number> = {}
 ) {
   const stepMap = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
 
@@ -33,8 +34,8 @@ export function useWizard(
   const [currentStepId, setCurrentStepId] = useState<string>(entryStepId);
   const [isComplete, setIsComplete] = useState(false);
   const [answeredSteps, setAnsweredSteps] = useState<Set<string>>(new Set());
-  // Track config state for branching decisions
-  const [wizardConfig, setWizardConfig] = useState<Record<string, unknown>>({});
+  // Track the last choice label for wizard routing (ephemeral, not part of config)
+  const [lastChoice, setLastChoice] = useState<string | null>(null);
 
   const currentStep = stepMap.get(currentStepId);
 
@@ -88,13 +89,15 @@ export function useWizard(
         onConfigPatch(choice.configPatch);
       }
 
-      // Update wizard config for branching
-      const updatedConfig = { ...wizardConfig, ...choice.configPatch, _lastChoice: choiceLabel };
-      setWizardConfig(updatedConfig);
+      // Track last choice for routing
+      setLastChoice(choiceLabel);
+
+      // Build merged config for branching: parent config + this patch + routing state
+      const mergedConfig = { ...parentConfig, ...choice.configPatch, _lastChoice: choiceLabel };
 
       // Determine next step
       const explicitNext = choice.nextStepId;
-      const computedNext = currentStep.getNextStepId?.(updatedConfig);
+      const computedNext = currentStep.getNextStepId?.(mergedConfig);
       const nextStepId = explicitNext ?? computedNext;
 
       if (nextStepId) {
@@ -103,7 +106,7 @@ export function useWizard(
         setIsComplete(true);
       }
     },
-    [currentStep, currentStepId, answeredSteps, wizardConfig, onConfigPatch, advanceToStep]
+    [currentStep, currentStepId, answeredSteps, parentConfig, onConfigPatch, advanceToStep]
   );
 
   const submitNumbers = useCallback(
@@ -137,19 +140,21 @@ export function useWizard(
       }
       onConfigPatch(patch);
 
-      // Update wizard config
-      const updatedConfig = { ...wizardConfig, ...patch };
-      setWizardConfig(updatedConfig);
+      // Build merged config for branching: parent config + this patch
+      const mergedConfig: Record<string, unknown> = { ...parentConfig, ...patch };
+      if (lastChoice !== null) {
+        mergedConfig._lastChoice = lastChoice;
+      }
 
       // Determine next step
-      const nextStepId = currentStep.getNextStepId?.(updatedConfig) ?? null;
+      const nextStepId = currentStep.getNextStepId?.(mergedConfig) ?? null;
       if (nextStepId) {
         advanceToStep(nextStepId);
       } else {
         setIsComplete(true);
       }
     },
-    [currentStep, currentStepId, answeredSteps, wizardConfig, onConfigPatch, advanceToStep]
+    [currentStep, currentStepId, answeredSteps, parentConfig, lastChoice, onConfigPatch, advanceToStep]
   );
 
   const reset = useCallback(() => {
@@ -167,7 +172,7 @@ export function useWizard(
     setCurrentStepId(entryStepId);
     setIsComplete(false);
     setAnsweredSteps(new Set());
-    setWizardConfig({});
+    setLastChoice(null);
   }, [stepMap, entryStepId]);
 
   return {
