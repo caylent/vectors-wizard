@@ -87,10 +87,7 @@ input[type="number"] {
 
 /* ── Cosmic background — very subtle, neutral ─────────────── */
 .cosmic-bg {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 85% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-    linear-gradient(180deg, #0b0b0b 0%, #0e0e0e 100%);
+  background: var(--color-background);
 }
 
 /* ── Noise texture overlay ────────────────────────────────── */
@@ -119,12 +116,12 @@ input[type="number"] {
 .orb-purple {
   width: 400px;
   height: 400px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.008);
 }
 .orb-green {
   width: 300px;
   height: 300px;
-  background: rgba(203, 239, 174, 0.015);
+  background: rgba(203, 239, 174, 0.006);
   animation-delay: -10s;
   animation-direction: reverse;
 }
@@ -140,7 +137,7 @@ input[type="number"] {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
