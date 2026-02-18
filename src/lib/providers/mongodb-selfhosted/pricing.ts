@@ -69,16 +69,24 @@ export interface CostBreakdown {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    replicaCount: Math.max(0, inputs.replicaCount || 0),
+    storageGB: Math.max(0, inputs.storageGB || 0),
+    dataTransferGB: Math.max(0, inputs.dataTransferGB || 0),
+    mongosCount: Math.max(0, inputs.mongosCount || 0),
+  };
+
   const instanceConfig = PRICING.instances[inputs.instanceType];
   const perInstanceMonthlyCost = instanceConfig.hourly * PRICING.hoursPerMonth;
-  const computeMonthlyCost = perInstanceMonthlyCost * inputs.replicaCount;
+  const computeMonthlyCost = perInstanceMonthlyCost * safe.replicaCount;
 
   // Storage
   const storageRate = PRICING.storage[inputs.storageType].perGBMonth;
-  const storageMonthlyCost = inputs.storageGB * storageRate * inputs.replicaCount;
+  const storageMonthlyCost = safe.storageGB * storageRate * safe.replicaCount;
 
   // Data transfer (first 100GB free, then $0.09/GB)
-  const billableTransfer = Math.max(0, inputs.dataTransferGB - 100);
+  const billableTransfer = Math.max(0, safe.dataTransferGB - 100);
   const dataTransferMonthlyCost = billableTransfer * PRICING.dataTransfer.perGBOut;
 
   // Config servers for sharded clusters (3 t3.small instances)
@@ -88,7 +96,7 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
 
   // Mongos routers (for sharded clusters)
   const mongosPerInstanceCost = 0.0416 * PRICING.hoursPerMonth; // t3.medium
-  const mongosMonthlyCost = includeConfigServers ? mongosPerInstanceCost * inputs.mongosCount : 0;
+  const mongosMonthlyCost = includeConfigServers ? mongosPerInstanceCost * safe.mongosCount : 0;
 
   const totalMonthlyCost =
     computeMonthlyCost +
@@ -100,17 +108,17 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   return {
     compute: {
       instanceType: inputs.instanceType,
-      replicaCount: inputs.replicaCount,
+      replicaCount: safe.replicaCount,
       perInstanceCost: perInstanceMonthlyCost,
       monthlyCost: computeMonthlyCost,
     },
     storage: {
-      totalGB: inputs.storageGB * inputs.replicaCount,
+      totalGB: safe.storageGB * safe.replicaCount,
       type: PRICING.storage[inputs.storageType].label,
       monthlyCost: storageMonthlyCost,
     },
     dataTransfer: {
-      totalGB: inputs.dataTransferGB,
+      totalGB: safe.dataTransferGB,
       monthlyCost: dataTransferMonthlyCost,
     },
     configServers: {
@@ -118,7 +126,7 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
       monthlyCost: configServersMonthlyCost,
     },
     mongos: {
-      count: includeConfigServers ? inputs.mongosCount : 0,
+      count: includeConfigServers ? safe.mongosCount : 0,
       perInstanceCost: mongosPerInstanceCost,
       monthlyCost: mongosMonthlyCost,
     },

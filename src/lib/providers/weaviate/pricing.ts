@@ -49,15 +49,24 @@ export interface CostBreakdown {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    numObjects: Math.max(0, inputs.numObjects || 0),
+    dimensions: Math.max(0, inputs.dimensions || 0),
+    replicationFactor: Math.max(0, inputs.replicationFactor || 0),
+    storageGiB: Math.max(0, inputs.storageGiB || 0),
+    backupGiB: Math.max(0, inputs.backupGiB || 0),
+  };
+
   // Dimensions: objects × dimensions × replication factor
-  const totalDimensions = inputs.numObjects * inputs.dimensions * inputs.replicationFactor;
+  const totalDimensions = safe.numObjects * safe.dimensions * safe.replicationFactor;
   const dimensionsCost = (totalDimensions / 1_000_000) * PRICING.dimensions.perMillion;
 
   // Storage
-  const storageCost = inputs.storageGiB * PRICING.storage.perGiB;
+  const storageCost = safe.storageGiB * PRICING.storage.perGiB;
 
   // Backup
-  const backupCost = inputs.backupGiB * PRICING.backup.perGiB;
+  const backupCost = safe.backupGiB * PRICING.backup.perGiB;
 
   const subtotal = dimensionsCost + storageCost + backupCost;
   const totalMonthlyCost = Math.max(PRICING.minimum, subtotal);
@@ -68,11 +77,11 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
       monthlyCost: dimensionsCost,
     },
     storage: {
-      totalGiB: inputs.storageGiB,
+      totalGiB: safe.storageGiB,
       monthlyCost: storageCost,
     },
     backup: {
-      totalGiB: inputs.backupGiB,
+      totalGiB: safe.backupGiB,
       monthlyCost: backupCost,
     },
     subtotal,

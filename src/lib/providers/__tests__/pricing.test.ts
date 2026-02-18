@@ -900,8 +900,23 @@ describe("MongoDB Atlas pricing", () => {
       storageGB: 200,
       replicaCount: 3,
     });
-    // For dedicated, totalMonthlyCost = compute only (storage included in tier)
-    expect(result.totalMonthlyCost).toBe(result.compute.monthlyCost);
+    // For dedicated, totalMonthlyCost = compute + storage overage (200 GB within M50 max of 4096)
+    expect(result.totalMonthlyCost).toBe(result.compute.monthlyCost + result.storage.additionalCost);
+  });
+
+  it("dedicated tier: storage overage charges when exceeding tier max", () => {
+    const result = calculateMongoDBCosts({
+      clusterType: "dedicated",
+      flexOpsPerSec: 0,
+      dedicatedTier: "M10",
+      storageGB: 200,
+      replicaCount: 3,
+    });
+    // M10 storageMax = 128, so 200 - 128 = 72 GB overage
+    // 72 * $0.25 = $18.00
+    expect(result.storage.included).toBe(false);
+    expect(result.storage.additionalCost).toBeCloseTo(72 * 0.25, 6);
+    expect(result.totalMonthlyCost).toBe(result.compute.monthlyCost + result.storage.additionalCost);
   });
 
   it("handles large inputs without NaN or Infinity", () => {
@@ -1223,5 +1238,170 @@ describe("Cross-provider structural checks", () => {
       includeMinio: 0,
     });
     expect(milvus.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Negative input handling
+// ---------------------------------------------------------------------------
+
+describe("Negative input handling", () => {
+  it("S3 Vectors: negative inputs produce non-negative costs", () => {
+    const result = calculateS3Costs({
+      numVectors: -1000,
+      dimensions: -768,
+      avgKeyLengthBytes: -36,
+      filterableMetadataBytes: -100,
+      nonFilterableMetadataBytes: -200,
+      monthlyQueries: -500_000,
+      monthlyVectorsWritten: -100_000,
+      embeddingCostPerMTokens: -0.1,
+      avgTokensPerVector: -256,
+      avgTokensPerQuery: -64,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.write.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.query.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.embedding.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("Pinecone: negative inputs produce non-negative costs", () => {
+    const result = calculatePineconeCosts({
+      numVectors: -1000,
+      dimensions: -768,
+      metadataBytes: -100,
+      monthlyQueries: -500_000,
+      monthlyUpserts: -100_000,
+      embeddingCostPerMTokens: -0.1,
+      avgTokensPerVector: -256,
+      avgTokensPerQuery: -64,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.reads.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.writes.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.embedding.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("OpenSearch: negative inputs produce non-negative costs", () => {
+    const result = calculateOpenSearchCosts({
+      indexSizeGB: -100,
+      deploymentMode: "production",
+      monthlyQueries: -500_000,
+      monthlyWrites: -100_000,
+      maxSearchOCUs: -10,
+      maxIndexingOCUs: -10,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.compute.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("Weaviate: negative inputs produce non-negative costs", () => {
+    const result = calculateWeaviateCosts({
+      numObjects: -1000,
+      dimensions: -768,
+      replicationFactor: -2,
+      storageGiB: -50,
+      backupGiB: -25,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.dimensions.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.backup.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("Zilliz: negative inputs produce non-negative costs", () => {
+    const result = calculateZillizCosts({
+      numVectors: -1000,
+      dimensions: -768,
+      metadataBytes: -100,
+      monthlyQueries: -500_000,
+      monthlyWrites: -100_000,
+      includeFreeTier: 0,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.compute.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("TurboPuffer: negative inputs produce non-negative costs", () => {
+    const result = calculateTurbopufferCosts({
+      numVectors: -1000,
+      dimensions: -768,
+      metadataBytes: -100,
+      monthlyWriteGB: -50,
+      monthlyQueryGB: -200,
+      plan: "launch",
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.writes.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.queries.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("MongoDB Atlas: negative inputs produce non-negative costs", () => {
+    const resultFlex = calculateMongoDBCosts({
+      clusterType: "flex",
+      flexOpsPerSec: -100,
+      dedicatedTier: "M10",
+      storageGB: -50,
+      replicaCount: -3,
+    });
+    expect(resultFlex.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(resultFlex);
+
+    const resultDedicated = calculateMongoDBCosts({
+      clusterType: "dedicated",
+      flexOpsPerSec: -100,
+      dedicatedTier: "M30",
+      storageGB: -500,
+      replicaCount: -3,
+    });
+    expect(resultDedicated.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(resultDedicated.compute.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(resultDedicated.storage.additionalCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(resultDedicated);
+  });
+
+  it("MongoDB Self-Hosted: negative inputs produce non-negative costs", () => {
+    const result = calculateMongoDBSelfHostedCosts({
+      instanceType: "m5.large",
+      replicaCount: -3,
+      storageGB: -100,
+      storageType: "gp3",
+      dataTransferGB: -500,
+      includeConfigServers: 0,
+      mongosCount: -2,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.compute.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.dataTransfer.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
+  });
+
+  it("Milvus: negative inputs produce non-negative costs", () => {
+    const result = calculateMilvusCosts({
+      instanceType: "m5.large",
+      instanceCount: -3,
+      storageGB: -100,
+      storageType: "gp3",
+      dataTransferGB: -500,
+      includeEtcd: 0,
+      includeMinio: 0,
+    });
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.compute.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.storage.monthlyCost).toBeGreaterThanOrEqual(0);
+    expect(result.dataTransfer.monthlyCost).toBeGreaterThanOrEqual(0);
+    expectAllFinite(result);
   });
 });

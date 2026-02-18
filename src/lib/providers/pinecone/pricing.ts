@@ -61,23 +61,35 @@ export interface CostBreakdown {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    numVectors: Math.max(0, inputs.numVectors || 0),
+    dimensions: Math.max(0, inputs.dimensions || 0),
+    metadataBytes: Math.max(0, inputs.metadataBytes || 0),
+    monthlyQueries: Math.max(0, inputs.monthlyQueries || 0),
+    monthlyUpserts: Math.max(0, inputs.monthlyUpserts || 0),
+    embeddingCostPerMTokens: Math.max(0, inputs.embeddingCostPerMTokens || 0),
+    avgTokensPerVector: Math.max(0, inputs.avgTokensPerVector || 0),
+    avgTokensPerQuery: Math.max(0, inputs.avgTokensPerQuery || 0),
+  };
+
   // Storage: vectors × dimensions × 4 bytes (float32) + metadata overhead
-  const vectorBytes = inputs.numVectors * inputs.dimensions * 4;
-  const metadataTotal = inputs.numVectors * inputs.metadataBytes;
+  const vectorBytes = safe.numVectors * safe.dimensions * 4;
+  const metadataTotal = safe.numVectors * safe.metadataBytes;
   const storageTotalBytes = vectorBytes + metadataTotal;
   const storageTotalGB = storageTotalBytes / (1024 ** 3);
   const storageMonthlyCost = storageTotalGB * PRICING.storage.perGBMonth;
 
   // Read units (queries)
-  const readsMonthlyCost = (inputs.monthlyQueries / 1_000_000) * PRICING.readUnits.perMillion;
+  const readsMonthlyCost = (safe.monthlyQueries / 1_000_000) * PRICING.readUnits.perMillion;
 
   // Write units (upserts)
-  const writesMonthlyCost = (inputs.monthlyUpserts / 1_000_000) * PRICING.writeUnits.perMillion;
+  const writesMonthlyCost = (safe.monthlyUpserts / 1_000_000) * PRICING.writeUnits.perMillion;
 
   // Embedding costs (optional, user's embedding model)
-  const costPerToken = inputs.embeddingCostPerMTokens / 1_000_000;
-  const embeddingWriteTokens = inputs.monthlyUpserts * inputs.avgTokensPerVector;
-  const embeddingQueryTokens = inputs.monthlyQueries * inputs.avgTokensPerQuery;
+  const costPerToken = safe.embeddingCostPerMTokens / 1_000_000;
+  const embeddingWriteTokens = safe.monthlyUpserts * safe.avgTokensPerVector;
+  const embeddingQueryTokens = safe.monthlyQueries * safe.avgTokensPerQuery;
   const embeddingTotalTokens = embeddingWriteTokens + embeddingQueryTokens;
   const embeddingWriteCost = embeddingWriteTokens * costPerToken;
   const embeddingQueryCost = embeddingQueryTokens * costPerToken;
@@ -93,11 +105,11 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
       monthlyCost: storageMonthlyCost,
     },
     reads: {
-      totalQueries: inputs.monthlyQueries,
+      totalQueries: safe.monthlyQueries,
       monthlyCost: readsMonthlyCost,
     },
     writes: {
-      totalUpserts: inputs.monthlyUpserts,
+      totalUpserts: safe.monthlyUpserts,
       monthlyCost: writesMonthlyCost,
     },
     embedding: {

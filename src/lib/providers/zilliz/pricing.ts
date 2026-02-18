@@ -61,21 +61,31 @@ function estimateWriteVCUs(writes: number): number {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    numVectors: Math.max(0, inputs.numVectors || 0),
+    dimensions: Math.max(0, inputs.dimensions || 0),
+    metadataBytes: Math.max(0, inputs.metadataBytes || 0),
+    monthlyQueries: Math.max(0, inputs.monthlyQueries || 0),
+    monthlyWrites: Math.max(0, inputs.monthlyWrites || 0),
+    includeFreeTier: inputs.includeFreeTier,
+  };
+
   // Storage: vectors × (dimensions × 4 bytes + metadata)
-  const vectorBytes = inputs.numVectors * inputs.dimensions * 4;
-  const metadataTotal = inputs.numVectors * inputs.metadataBytes;
+  const vectorBytes = safe.numVectors * safe.dimensions * 4;
+  const metadataTotal = safe.numVectors * safe.metadataBytes;
   const storageTotalBytes = vectorBytes + metadataTotal;
   const storageTotalGB = storageTotalBytes / (1024 ** 3);
 
   // Apply free tier
-  const includeFreeTier = inputs.includeFreeTier === 1;
+  const includeFreeTier = safe.includeFreeTier === 1;
   const freeStorageGB = includeFreeTier ? PRICING.freeTier.storageGB : 0;
   const billableStorageGB = Math.max(0, storageTotalGB - freeStorageGB);
   const storageMonthlyCost = billableStorageGB * PRICING.storage.perGBMonth;
 
   // Compute (vCUs)
-  const queryVCUs = estimateQueryVCUs(inputs.monthlyQueries);
-  const writeVCUs = estimateWriteVCUs(inputs.monthlyWrites);
+  const queryVCUs = estimateQueryVCUs(safe.monthlyQueries);
+  const writeVCUs = estimateWriteVCUs(safe.monthlyWrites);
   const totalVCUs = queryVCUs + writeVCUs;
 
   const freeVCUs = includeFreeTier ? PRICING.freeTier.vcuMillions * 1_000_000 : 0;

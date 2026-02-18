@@ -69,16 +69,23 @@ export interface CostBreakdown {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    instanceCount: Math.max(0, inputs.instanceCount || 0),
+    storageGB: Math.max(0, inputs.storageGB || 0),
+    dataTransferGB: Math.max(0, inputs.dataTransferGB || 0),
+  };
+
   const instanceConfig = PRICING.instances[inputs.instanceType];
   const perInstanceMonthlyCost = instanceConfig.hourly * PRICING.hoursPerMonth;
-  const computeMonthlyCost = perInstanceMonthlyCost * inputs.instanceCount;
+  const computeMonthlyCost = perInstanceMonthlyCost * safe.instanceCount;
 
   // Storage
   const storageRate = PRICING.storage[inputs.storageType].perGBMonth;
-  const storageMonthlyCost = inputs.storageGB * storageRate * inputs.instanceCount;
+  const storageMonthlyCost = safe.storageGB * storageRate * safe.instanceCount;
 
   // Data transfer (first 100GB free, then $0.09/GB)
-  const billableTransfer = Math.max(0, inputs.dataTransferGB - 100);
+  const billableTransfer = Math.max(0, safe.dataTransferGB - 100);
   const dataTransferMonthlyCost = billableTransfer * PRICING.dataTransfer.perGBOut;
 
   // etcd cluster (3 t3.small instances for HA) - required for production
@@ -101,17 +108,17 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   return {
     compute: {
       instanceType: inputs.instanceType,
-      instanceCount: inputs.instanceCount,
+      instanceCount: safe.instanceCount,
       perInstanceCost: perInstanceMonthlyCost,
       monthlyCost: computeMonthlyCost,
     },
     storage: {
-      totalGB: inputs.storageGB * inputs.instanceCount,
+      totalGB: safe.storageGB * safe.instanceCount,
       type: PRICING.storage[inputs.storageType].label,
       monthlyCost: storageMonthlyCost,
     },
     dataTransfer: {
-      totalGB: inputs.dataTransferGB,
+      totalGB: safe.dataTransferGB,
       monthlyCost: dataTransferMonthlyCost,
     },
     etcd: {

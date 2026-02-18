@@ -66,11 +66,18 @@ function getFlexPrice(opsPerSec: number): number {
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    flexOpsPerSec: Math.max(0, inputs.flexOpsPerSec || 0),
+    storageGB: Math.max(0, inputs.storageGB || 0),
+    replicaCount: Math.max(0, inputs.replicaCount || 0),
+  };
+
   if (inputs.clusterType === "flex") {
-    const monthlyPrice = getFlexPrice(inputs.flexOpsPerSec);
+    const monthlyPrice = getFlexPrice(safe.flexOpsPerSec);
     return {
       compute: {
-        tier: `Flex (${inputs.flexOpsPerSec} ops/sec)`,
+        tier: `Flex (${safe.flexOpsPerSec} ops/sec)`,
         monthlyCost: monthlyPrice,
         perNodeCost: monthlyPrice,
       },
@@ -86,7 +93,11 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   // Dedicated cluster
   const tierConfig = PRICING.dedicated.tiers[inputs.dedicatedTier];
   const perNodeMonthlyCost = tierConfig.hourly * PRICING.hoursPerMonth;
-  const totalComputeCost = perNodeMonthlyCost * inputs.replicaCount;
+  const totalComputeCost = perNodeMonthlyCost * safe.replicaCount;
+
+  // Storage overage: charge for storage exceeding tier maximum
+  const storageOverageGB = Math.max(0, safe.storageGB - tierConfig.storageMax);
+  const storageOverageCost = storageOverageGB * 0.25; // $0.25/GB-month for overage
 
   return {
     compute: {
@@ -95,11 +106,11 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
       perNodeCost: perNodeMonthlyCost,
     },
     storage: {
-      totalGB: inputs.storageGB,
-      included: inputs.storageGB <= tierConfig.storageMax,
-      additionalCost: 0, // Storage is included in tier pricing up to max
+      totalGB: safe.storageGB,
+      included: safe.storageGB <= tierConfig.storageMax,
+      additionalCost: storageOverageCost,
     },
-    totalMonthlyCost: totalComputeCost,
+    totalMonthlyCost: totalComputeCost + storageOverageCost,
   };
 }
 

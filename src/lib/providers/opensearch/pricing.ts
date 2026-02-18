@@ -63,21 +63,30 @@ function estimateIndexingOCUs(writes: number, mode: "production" | "dev-test"): 
 }
 
 export function calculateCosts(inputs: CostInputs): CostBreakdown {
+  // Clamp all numeric inputs to non-negative to avoid nonsensical results
+  const safe = {
+    indexSizeGB: Math.max(0, inputs.indexSizeGB || 0),
+    monthlyQueries: Math.max(0, inputs.monthlyQueries || 0),
+    monthlyWrites: Math.max(0, inputs.monthlyWrites || 0),
+    maxSearchOCUs: Math.max(0, inputs.maxSearchOCUs || 0),
+    maxIndexingOCUs: Math.max(0, inputs.maxIndexingOCUs || 0),
+  };
+
   // Estimate OCUs based on workload
   const searchOCUs = Math.min(
-    inputs.maxSearchOCUs,
-    estimateSearchOCUs(inputs.monthlyQueries, inputs.deploymentMode)
+    safe.maxSearchOCUs,
+    estimateSearchOCUs(safe.monthlyQueries, inputs.deploymentMode)
   );
   const indexingOCUs = Math.min(
-    inputs.maxIndexingOCUs,
-    estimateIndexingOCUs(inputs.monthlyWrites, inputs.deploymentMode)
+    safe.maxIndexingOCUs,
+    estimateIndexingOCUs(safe.monthlyWrites, inputs.deploymentMode)
   );
 
   const totalOCUs = searchOCUs + indexingOCUs;
   const computeMonthlyCost = totalOCUs * PRICING.ocu.perHour * PRICING.hoursPerMonth;
 
   // Storage
-  const storageMonthlyCost = inputs.indexSizeGB * PRICING.storage.perGBMonth;
+  const storageMonthlyCost = safe.indexSizeGB * PRICING.storage.perGBMonth;
 
   return {
     compute: {
@@ -87,7 +96,7 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
       monthlyCost: computeMonthlyCost,
     },
     storage: {
-      totalGB: inputs.indexSizeGB,
+      totalGB: safe.indexSizeGB,
       monthlyCost: storageMonthlyCost,
     },
     totalMonthlyCost: computeMonthlyCost + storageMonthlyCost,
