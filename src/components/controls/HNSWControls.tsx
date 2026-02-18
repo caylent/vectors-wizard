@@ -193,8 +193,7 @@ export function SearchParamsPanel() {
   const handleSearch = () => {
     if (isSearching) return;
     setIsSearching(true);
-    // Search animation will be handled by the visualization component
-    setTimeout(() => setIsSearching(false), 3000);
+    // Search animation lifecycle is handled by HNSWSearchAnimation component
   };
 
   return (

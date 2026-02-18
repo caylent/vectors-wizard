@@ -8,6 +8,7 @@ import {
   generateCentroids,
   generateClusteredPoints,
   getCentroidPosition,
+  findNearestCentroids,
   IVF_RADIUS,
   type IVFCentroid,
   type IVFPoint,
@@ -166,15 +167,18 @@ export function IVFVisualization() {
     return generateClusteredPoints(centroids, visualNodeCount, 1.5);
   }, [centroids, visualNodeCount]);
 
-  // Derive probed clusters from nprobe (no need for state)
+  // Derive probed clusters from nprobe using spatial nearest centroids
   const probedClusters = useMemo(() => {
-    const probed = new Set<number>();
     const visualProbe = Math.min(nprobe, visualClusters);
-    for (let i = 0; i < visualProbe; i++) {
-      probed.add(i);
+    // Simulate a query point at a fixed position for deterministic results
+    const queryPos = new THREE.Vector3(IVF_RADIUS * 0.8, IVF_RADIUS * 0.3, IVF_RADIUS * 0.5);
+    const nearest = findNearestCentroids(queryPos, centroids, visualProbe);
+    const probed = new Set<number>();
+    for (const c of nearest) {
+      probed.add(c.id);
     }
     return probed;
-  }, [nprobe, visualClusters]);
+  }, [nprobe, visualClusters, centroids]);
 
   // Use nlist in key to trigger animation when parameter changes
   return (

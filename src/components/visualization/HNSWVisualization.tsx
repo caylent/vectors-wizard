@@ -15,6 +15,7 @@ import {
   type HNSWNode,
   type HNSWEdge,
 } from "@/lib/visualization/hnsw-layout";
+import { HNSWSearchAnimation } from "./HNSWSearchAnimation";
 import { useIndexStore } from "@/stores/indexStore";
 import { useVisualizationStore } from "@/stores/visualizationStore";
 
@@ -62,13 +63,14 @@ function LayerShell({ layer, visible, animate = true }: LayerShellProps) {
 interface NodeMeshProps {
   node: HNSWNode;
   layer: number;
+  nodeIndex?: number;
   animate?: boolean;
 }
 
-function NodeMesh({ node, layer, animate = true }: NodeMeshProps) {
+function NodeMesh({ node, layer, nodeIndex = 0, animate = true }: NodeMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const position = useMemo(() => getNodePosition(node, layer), [node, layer]);
-  const radius = 0.12 + layer * 0.1;
+  const radius = 0.15 + layer * 0.2;
   const isMaxLayer = layer === node.layer;
 
   useEffect(() => {
@@ -79,11 +81,11 @@ function NodeMesh({ node, layer, animate = true }: NodeMeshProps) {
         y: 1,
         z: 1,
         duration: 0.35,
-        delay: layer * 0.04 + Math.random() * 0.2,
+        delay: layer * 0.8 + nodeIndex * 0.02,
         ease: "back.out(2)",
       });
     }
-  }, [animate, layer]);
+  }, [animate, layer, nodeIndex]);
 
   // Breathing animation for high-layer nodes
   useFrame(({ clock }) => {
@@ -119,7 +121,8 @@ interface EdgeLineProps {
 }
 
 function EdgeLine({ edge, nodes, animate = true, index }: EdgeLineProps) {
-  const [opacity, setOpacity] = useState(animate ? 0 : edge.layer >= 2 ? 0.4 : 0.18);
+  const targetOpacity = edge.layer >= 2 ? 0.6 : 0.35;
+  const [opacity, setOpacity] = useState(animate ? 0 : targetOpacity);
   const sourceNode = nodes.find((n) => n.id === edge.source);
   const targetNode = nodes.find((n) => n.id === edge.target);
 
@@ -131,9 +134,9 @@ function EdgeLine({ edge, nodes, animate = true, index }: EdgeLineProps) {
 
     // Create curved line by pushing midpoint outward
     const mid = new THREE.Vector3(
-      (p1.x + p2.x) * 0.5 * 1.05,
-      (p1.y + p2.y) * 0.5 * 1.05,
-      (p1.z + p2.z) * 0.5 * 1.05
+      (p1.x + p2.x) * 0.5 * 1.15,
+      (p1.y + p2.y) * 0.5 * 1.15,
+      (p1.z + p2.z) * 0.5 * 1.15
     );
 
     const curve = new THREE.QuadraticBezierCurve3(
@@ -145,16 +148,23 @@ function EdgeLine({ edge, nodes, animate = true, index }: EdgeLineProps) {
     return curve.getPoints(12);
   }, [sourceNode, targetNode, edge.layer]);
 
-  const targetOpacity = edge.layer >= 2 ? 0.4 : 0.18;
   const color = edge.layer >= 2 ? EDGE_COLORS.highlight : EDGE_COLORS.default;
+  const lineWidth = edge.layer >= 2 ? 2 : 1.5;
 
   useEffect(() => {
     if (animate) {
-      const delay = 150 + index * 2;
-      const timeout = setTimeout(() => {
-        setOpacity(targetOpacity);
-      }, delay);
-      return () => clearTimeout(timeout);
+      const delaySeconds = 0.15 + index * 0.002;
+      const anim = { val: 0 };
+      const tween = gsap.to(anim, {
+        val: targetOpacity,
+        duration: 0.4,
+        delay: delaySeconds,
+        ease: "power2.out",
+        onUpdate: () => {
+          setOpacity(anim.val);
+        },
+      });
+      return () => { tween.kill(); };
     }
   }, [animate, targetOpacity, index]);
 
@@ -166,7 +176,7 @@ function EdgeLine({ edge, nodes, animate = true, index }: EdgeLineProps) {
       color={color}
       transparent
       opacity={opacity}
-      lineWidth={1}
+      lineWidth={lineWidth}
     />
   );
 }
@@ -199,6 +209,8 @@ function RadialPillar({ node }: RadialPillarProps) {
 export function HNSWVisualization() {
   const M = useIndexStore((s) => s.hnsw.M);
   const visualNodeCount = useVisualizationStore((s) => s.visualNodeCount);
+  const isSearching = useVisualizationStore((s) => s.isSearching);
+  const setAutoRotate = useVisualizationStore((s) => s.setAutoRotate);
 
   // Generate graph data
   const { nodes, edges } = useMemo(() => {
@@ -215,6 +227,29 @@ export function HNSWVisualization() {
     });
     return layers;
   }, [nodes]);
+
+  // Compute per-layer node indices for staggered entrance animation
+  const nodeLayerIndices = useMemo(() => {
+    const indices = new Map<string, number>();
+    const layerCounters: Record<number, number> = {};
+    for (const node of nodes) {
+      for (let layer = 0; layer <= node.layer; layer++) {
+        const count = layerCounters[layer] ?? 0;
+        indices.set(`${node.id}-${layer}`, count);
+        layerCounters[layer] = count + 1;
+      }
+    }
+    return indices;
+  }, [nodes]);
+
+  // Pause auto-rotate during search
+  useEffect(() => {
+    if (isSearching) {
+      setAutoRotate(false);
+    } else {
+      setAutoRotate(true);
+    }
+  }, [isSearching, setAutoRotate]);
 
   // Use M in key to trigger animation when M changes
   return (
@@ -236,6 +271,7 @@ export function HNSWVisualization() {
             key={`node-${node.id}-${layer}`}
             node={node}
             layer={layer}
+            nodeIndex={nodeLayerIndices.get(`${node.id}-${layer}`) ?? 0}
             animate
           />
         ))
@@ -258,6 +294,13 @@ export function HNSWVisualization() {
           index={idx}
         />
       ))}
+
+      {/* Search animation */}
+      <HNSWSearchAnimation
+        nodes={nodes}
+        edges={edges}
+        isActive={isSearching}
+      />
     </group>
   );
 }
