@@ -106,14 +106,15 @@ const DEFAULT_CONFIG: CostInputs = {
 
 // Convert numeric values to expected types
 function normalizeConfig(config: Record<string, number>): CostInputs {
+  const instanceIndex = config.instanceType ?? 2; // default to m5.large (index 2)
   return {
-    instanceType: INSTANCE_TYPES[config.instanceType] || "m5.large",
-    instanceCount: config.instanceCount,
-    storageGB: config.storageGB,
+    instanceType: INSTANCE_TYPES[instanceIndex] || "m5.large",
+    instanceCount: config.instanceCount ?? 1,
+    storageGB: config.storageGB ?? 100,
     storageType: config.storageType === 0 ? "gp3" : "io1",
-    dataTransferGB: config.dataTransferGB,
-    includeEtcd: config.includeEtcd,
-    includeMinio: config.includeMinio,
+    dataTransferGB: config.dataTransferGB ?? 100,
+    includeEtcd: config.includeEtcd ?? 1,
+    includeMinio: config.includeMinio ?? 0,
   };
 }
 
@@ -125,8 +126,8 @@ export const milvusProvider: PricingProvider<CostInputs> = {
   configFields: CONFIG_FIELDS,
   defaultConfig: DEFAULT_CONFIG,
   calculateCosts: (config: CostInputs): ProviderCostBreakdown => {
-    // Handle numeric values from UI
-    const normalizedConfig = typeof config.instanceType === "number"
+    // Handle numeric values from UI or missing/undefined values during provider transitions
+    const normalizedConfig = typeof config.instanceType === "number" || typeof config.instanceType === "undefined"
       ? normalizeConfig(config as unknown as Record<string, number>)
       : config;
 

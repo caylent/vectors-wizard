@@ -30,15 +30,22 @@ export function useCalculator(
   });
 
   // Reset config when provider changes
-  if (configProviderId !== providerId) {
+  const isProviderTransition = configProviderId !== providerId;
+  if (isProviderTransition) {
     setConfigProviderId(providerId);
     setConfig({ ...provider.defaultConfig as Record<string, number> });
     setActivePreset(null);
   }
 
+  // During transition render, config still holds old provider's values.
+  // Use default config for the new provider to avoid incompatible config.
+  const effectiveConfig = isProviderTransition
+    ? { ...provider.defaultConfig as Record<string, number> }
+    : config;
+
   const breakdown: ProviderCostBreakdown = useMemo(
-    () => provider.calculateCosts(config),
-    [provider, config]
+    () => provider.calculateCosts(effectiveConfig),
+    [provider, effectiveConfig]
   );
 
   const updateConfig = useCallback(

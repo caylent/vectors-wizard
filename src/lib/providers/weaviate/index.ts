@@ -85,7 +85,7 @@ export const weaviateProvider: PricingProvider<CostInputs> = {
         amount: raw.dimensions.monthlyCost,
         details: {
           "Total dimensions": formatNumber(raw.dimensions.totalDimensions),
-          "Objects × Dims × Replicas": `${formatNumber(config.numObjects)} × ${config.dimensions} × ${config.replicationFactor}`,
+          "Objects × Dims × Replicas": `${formatNumber(config.numObjects ?? 0)} × ${config.dimensions ?? 0} × ${config.replicationFactor ?? 0}`,
           Rate: `$${PRICING.dimensions.perMillion}/M dimensions`,
         },
         color: "#8555f0",

@@ -404,3 +404,281 @@ describe("comparison flow end-to-end", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Provider switching: calling calculateCosts with wrong provider's config
+// ---------------------------------------------------------------------------
+
+describe("provider switching: calculateCosts with incompatible configs", () => {
+  // Collect all default configs upfront
+  const defaultConfigs: Record<string, Record<string, number>> = {};
+  for (const id of ALL_PROVIDER_IDS) {
+    const provider = getProvider(id);
+    if (provider) {
+      defaultConfigs[id] = { ...provider.defaultConfig as Record<string, number> };
+    }
+  }
+
+  it("every provider survives receiving every other provider's default config", () => {
+    for (const targetId of ALL_PROVIDER_IDS) {
+      const target = getProvider(targetId)!;
+
+      for (const sourceId of ALL_PROVIDER_IDS) {
+        if (sourceId === targetId) continue;
+
+        // Simulate provider switch: target provider receives source provider's config
+        const result = target.calculateCosts(defaultConfigs[sourceId]);
+
+        expect(
+          Number.isFinite(result.totalMonthlyCost),
+          `${targetId} should not crash with ${sourceId} config`
+        ).toBe(true);
+        expect(
+          result.totalMonthlyCost,
+          `${targetId} should return non-negative cost with ${sourceId} config`
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          result.lineItems.length,
+          `${targetId} should return line items with ${sourceId} config`
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("every provider survives receiving an empty config", () => {
+    for (const id of ALL_PROVIDER_IDS) {
+      const provider = getProvider(id)!;
+      const result = provider.calculateCosts({} as Record<string, number>);
+
+      expect(
+        Number.isFinite(result.totalMonthlyCost),
+        `${id} should not crash with empty config`
+      ).toBe(true);
+      expect(
+        result.totalMonthlyCost,
+        `${id} should return non-negative cost with empty config`
+      ).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("every provider survives receiving a config with all zeros", () => {
+    for (const id of ALL_PROVIDER_IDS) {
+      const provider = getProvider(id)!;
+      const defaultKeys = Object.keys(provider.defaultConfig as Record<string, number>);
+      const zeroConfig = Object.fromEntries(defaultKeys.map((k) => [k, 0]));
+      const result = provider.calculateCosts(zeroConfig as Record<string, number>);
+
+      expect(
+        Number.isFinite(result.totalMonthlyCost),
+        `${id} should not crash with all-zero config`
+      ).toBe(true);
+      expect(
+        result.totalMonthlyCost,
+        `${id} should return non-negative cost with all-zero config`
+      ).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("every provider survives receiving config with undefined values", () => {
+    for (const id of ALL_PROVIDER_IDS) {
+      const provider = getProvider(id)!;
+      // Simulate a config where all values are undefined (e.g., from parsing errors)
+      const undefinedConfig = {
+        numVectors: undefined,
+        dimensions: undefined,
+        plan: undefined,
+        instanceType: undefined,
+        clusterType: undefined,
+        deploymentMode: undefined,
+      } as unknown as Record<string, number>;
+
+      const result = provider.calculateCosts(undefinedConfig);
+
+      expect(
+        Number.isFinite(result.totalMonthlyCost),
+        `${id} should not crash with undefined values`
+      ).toBe(true);
+      expect(
+        result.totalMonthlyCost,
+        `${id} should return non-negative cost with undefined values`
+      ).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// normalizeConfig edge cases: specific providers with string enums
+// ---------------------------------------------------------------------------
+
+describe("normalizeConfig edge cases", () => {
+  it("turbopuffer: undefined plan defaults to launch", () => {
+    const provider = getProvider("turbopuffer")!;
+    const result = provider.calculateCosts({
+      numVectors: 1000,
+      dimensions: 1536,
+      metadataBytes: 100,
+      monthlyWriteGB: 10,
+      monthlyQueryGB: 10,
+      // plan is missing
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBe(64); // launch minimum
+  });
+
+  it("turbopuffer: invalid string plan defaults to launch", () => {
+    const provider = getProvider("turbopuffer")!;
+    const result = provider.calculateCosts({
+      numVectors: 1000,
+      dimensions: 1536,
+      metadataBytes: 100,
+      monthlyWriteGB: 10,
+      monthlyQueryGB: 10,
+      plan: "invalid" as unknown as number,
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBe(64); // launch minimum
+  });
+
+  it("opensearch: undefined deploymentMode defaults to production", () => {
+    const provider = getProvider("opensearch")!;
+    const result = provider.calculateCosts({
+      indexSizeGB: 10,
+      // deploymentMode is missing
+      monthlyQueries: 100_000,
+      monthlyWrites: 10_000,
+      maxSearchOCUs: 2,
+      maxIndexingOCUs: 2,
+    } as Record<string, number>);
+    // Production: 2 OCUs minimum
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("mongodb: undefined clusterType defaults to dedicated", () => {
+    const provider = getProvider("mongodb")!;
+    const result = provider.calculateCosts({
+      // clusterType is missing
+      flexOpsPerSec: 100,
+      dedicatedTier: 0,
+      storageGB: 50,
+      replicaCount: 3,
+    } as Record<string, number>);
+    // Dedicated M10 cost should be > 0
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("mongodb: undefined dedicatedTier defaults to M10", () => {
+    const provider = getProvider("mongodb")!;
+    const result = provider.calculateCosts({
+      clusterType: 1, // dedicated
+      flexOpsPerSec: 0,
+      // dedicatedTier is missing
+      storageGB: 50,
+      replicaCount: 3,
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("mongodb-selfhosted: undefined instanceType defaults to m5.large", () => {
+    const provider = getProvider("mongodb-selfhosted")!;
+    const result = provider.calculateCosts({
+      // instanceType is missing
+      replicaCount: 3,
+      storageGB: 100,
+      storageType: 0,
+      dataTransferGB: 100,
+      includeConfigServers: 0,
+      mongosCount: 0,
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("mongodb-selfhosted: negative instanceType falls back to m5.large", () => {
+    const provider = getProvider("mongodb-selfhosted")!;
+    const result = provider.calculateCosts({
+      instanceType: -1,
+      replicaCount: 3,
+      storageGB: 100,
+      storageType: 0,
+      dataTransferGB: 100,
+      includeConfigServers: 0,
+      mongosCount: 0,
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("milvus: undefined instanceType defaults to m5.large", () => {
+    const provider = getProvider("milvus")!;
+    const result = provider.calculateCosts({
+      // instanceType is missing
+      instanceCount: 1,
+      storageGB: 50,
+      storageType: 0,
+      dataTransferGB: 0,
+      includeEtcd: 0,
+      includeMinio: 0,
+    } as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThan(0);
+  });
+
+  it("milvus: missing all fields still produces valid result", () => {
+    const provider = getProvider("milvus")!;
+    const result = provider.calculateCosts({} as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(result.totalMonthlyCost)).toBe(true);
+  });
+
+  it("mongodb-selfhosted: missing all fields still produces valid result", () => {
+    const provider = getProvider("mongodb-selfhosted")!;
+    const result = provider.calculateCosts({} as Record<string, number>);
+    expect(result.totalMonthlyCost).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(result.totalMonthlyCost)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toUniversalConfig with missing fields
+// ---------------------------------------------------------------------------
+
+describe("toUniversalConfig with missing fields", () => {
+  it("s3-vectors: handles empty config with defaults", () => {
+    const provider = getProvider("s3-vectors")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBe(100_000);
+    expect(result.dimensions).toBe(1536);
+    expectAllFinite(result);
+  });
+
+  it("pinecone: handles empty config with defaults", () => {
+    const provider = getProvider("pinecone")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBe(100_000);
+    expect(result.dimensions).toBe(1536);
+    expectAllFinite(result);
+  });
+
+  it("zilliz: handles empty config with defaults", () => {
+    const provider = getProvider("zilliz")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBe(100_000);
+    expectAllFinite(result);
+  });
+
+  it("turbopuffer: handles empty config with defaults", () => {
+    const provider = getProvider("turbopuffer")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBe(100_000);
+    expectAllFinite(result);
+  });
+
+  it("weaviate: handles empty config with defaults", () => {
+    const provider = getProvider("weaviate")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBe(100_000);
+    expectAllFinite(result);
+  });
+
+  it("opensearch: handles empty config with defaults", () => {
+    const provider = getProvider("opensearch")!;
+    const result = provider.toUniversalConfig!({} as Record<string, number>);
+    expect(result.numVectors).toBeGreaterThan(0);
+    expectAllFinite(result);
+  });
+});

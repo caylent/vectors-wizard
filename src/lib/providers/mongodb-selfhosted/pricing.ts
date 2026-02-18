@@ -77,12 +77,20 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
     mongosCount: Math.max(0, inputs.mongosCount || 0),
   };
 
-  const instanceConfig = PRICING.instances[inputs.instanceType];
+  // Guard string enum fields to valid values
+  const instanceType: InstanceType =
+    inputs.instanceType && inputs.instanceType in PRICING.instances
+      ? inputs.instanceType
+      : "m5.large";
+  const storageType: "gp3" | "io1" =
+    inputs.storageType === "io1" ? "io1" : "gp3";
+
+  const instanceConfig = PRICING.instances[instanceType];
   const perInstanceMonthlyCost = instanceConfig.hourly * PRICING.hoursPerMonth;
   const computeMonthlyCost = perInstanceMonthlyCost * safe.replicaCount;
 
   // Storage
-  const storageRate = PRICING.storage[inputs.storageType].perGBMonth;
+  const storageRate = PRICING.storage[storageType].perGBMonth;
   const storageMonthlyCost = safe.storageGB * storageRate * safe.replicaCount;
 
   // Data transfer (first 100GB free, then $0.09/GB)
@@ -107,14 +115,14 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
 
   return {
     compute: {
-      instanceType: inputs.instanceType,
+      instanceType,
       replicaCount: safe.replicaCount,
       perInstanceCost: perInstanceMonthlyCost,
       monthlyCost: computeMonthlyCost,
     },
     storage: {
       totalGB: safe.storageGB * safe.replicaCount,
-      type: PRICING.storage[inputs.storageType].label,
+      type: PRICING.storage[storageType].label,
       monthlyCost: storageMonthlyCost,
     },
     dataTransfer: {

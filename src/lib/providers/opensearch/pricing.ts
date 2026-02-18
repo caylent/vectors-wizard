@@ -72,14 +72,18 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
     maxIndexingOCUs: Math.max(0, inputs.maxIndexingOCUs || 0),
   };
 
+  // Guard deploymentMode to a valid value
+  const deploymentMode: "production" | "dev-test" =
+    inputs.deploymentMode === "dev-test" ? "dev-test" : "production";
+
   // Estimate OCUs based on workload
   const searchOCUs = Math.min(
     safe.maxSearchOCUs,
-    estimateSearchOCUs(safe.monthlyQueries, inputs.deploymentMode)
+    estimateSearchOCUs(safe.monthlyQueries, deploymentMode)
   );
   const indexingOCUs = Math.min(
     safe.maxIndexingOCUs,
-    estimateIndexingOCUs(safe.monthlyWrites, inputs.deploymentMode)
+    estimateIndexingOCUs(safe.monthlyWrites, deploymentMode)
   );
 
   const totalOCUs = searchOCUs + indexingOCUs;

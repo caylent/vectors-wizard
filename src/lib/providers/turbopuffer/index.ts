@@ -94,13 +94,19 @@ export const turbopufferProvider: PricingProvider<CostInputs> = {
   configFields: CONFIG_FIELDS,
   defaultConfig: DEFAULT_CONFIG,
   calculateCosts: (config: CostInputs): ProviderCostBreakdown => {
-    // Handle numeric plan from UI
+    // Handle numeric plan from UI or missing/undefined plan during provider transitions
     const normalizedConfig = typeof config.plan === "number"
       ? { ...config, plan: normalizePlan(config.plan as number) }
-      : config;
+      : {
+          ...config,
+          plan: (typeof config.plan === "string" && ["launch", "scale", "enterprise"].includes(config.plan))
+            ? config.plan
+            : "launch" as const,
+        };
 
     const raw = rawCalculateCosts(normalizedConfig);
-    const planName = normalizedConfig.plan.charAt(0).toUpperCase() + normalizedConfig.plan.slice(1);
+    const planStr = normalizedConfig.plan || "launch";
+    const planName = planStr.charAt(0).toUpperCase() + planStr.slice(1);
 
     const lineItems: CostLineItem[] = [
       {

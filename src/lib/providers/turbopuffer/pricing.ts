@@ -66,6 +66,10 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
     monthlyQueryGB: Math.max(0, inputs.monthlyQueryGB || 0),
   };
 
+  // Guard plan to a valid value
+  const plan: "launch" | "scale" | "enterprise" =
+    inputs.plan && inputs.plan in PRICING.minimum ? inputs.plan : "launch";
+
   // Storage: logical bytes stored
   const vectorBytes = safe.numVectors * safe.dimensions * 4; // float32
   const metadataTotal = safe.numVectors * safe.metadataBytes;
@@ -84,7 +88,7 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   const queriesCost = safe.monthlyQueryGB * effectiveQueryRate;
 
   const subtotal = storageCost + writesCost + queriesCost;
-  const planMinimum = PRICING.minimum[inputs.plan];
+  const planMinimum = PRICING.minimum[plan];
   const totalMonthlyCost = Math.max(planMinimum, subtotal);
 
   return {

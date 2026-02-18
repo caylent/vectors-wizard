@@ -73,7 +73,11 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
     replicaCount: Math.max(0, inputs.replicaCount || 0),
   };
 
-  if (inputs.clusterType === "flex") {
+  // Guard clusterType to a valid value
+  const clusterType: "flex" | "dedicated" =
+    inputs.clusterType === "flex" ? "flex" : "dedicated";
+
+  if (clusterType === "flex") {
     const monthlyPrice = getFlexPrice(safe.flexOpsPerSec);
     return {
       compute: {
@@ -90,8 +94,12 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
     };
   }
 
-  // Dedicated cluster
-  const tierConfig = PRICING.dedicated.tiers[inputs.dedicatedTier];
+  // Dedicated cluster - guard dedicatedTier to a valid value
+  const dedicatedTier: DedicatedTier =
+    inputs.dedicatedTier && inputs.dedicatedTier in PRICING.dedicated.tiers
+      ? inputs.dedicatedTier
+      : "M10";
+  const tierConfig = PRICING.dedicated.tiers[dedicatedTier];
   const perNodeMonthlyCost = tierConfig.hourly * PRICING.hoursPerMonth;
   const totalComputeCost = perNodeMonthlyCost * safe.replicaCount;
 
@@ -101,7 +109,7 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
 
   return {
     compute: {
-      tier: `${inputs.dedicatedTier} (${tierConfig.ram}GB RAM, ${tierConfig.vcpu} vCPU)`,
+      tier: `${dedicatedTier} (${tierConfig.ram}GB RAM, ${tierConfig.vcpu} vCPU)`,
       monthlyCost: totalComputeCost,
       perNodeCost: perNodeMonthlyCost,
     },

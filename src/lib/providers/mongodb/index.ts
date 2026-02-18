@@ -80,7 +80,8 @@ const DEFAULT_CONFIG: CostInputs = {
 // Convert numeric values to expected types
 function normalizeConfig(config: Record<string, number>): CostInputs {
   const clusterType = config.clusterType === 0 ? "flex" : "dedicated";
-  const dedicatedTier = DEDICATED_TIERS[config.dedicatedTier] || "M10";
+  const tierIndex = config.dedicatedTier ?? 0;
+  const dedicatedTier = DEDICATED_TIERS[tierIndex] || "M10";
   return {
     clusterType,
     flexOpsPerSec: config.flexOpsPerSec ?? 100,
@@ -98,8 +99,8 @@ export const mongodbProvider: PricingProvider<CostInputs> = {
   configFields: CONFIG_FIELDS,
   defaultConfig: DEFAULT_CONFIG,
   calculateCosts: (config: CostInputs): ProviderCostBreakdown => {
-    // Handle numeric values from UI
-    const normalizedConfig = typeof config.clusterType === "number"
+    // Handle numeric values from UI or missing/undefined values during provider transitions
+    const normalizedConfig = typeof config.clusterType === "number" || typeof config.clusterType === "undefined"
       ? normalizeConfig(config as unknown as Record<string, number>)
       : config;
 

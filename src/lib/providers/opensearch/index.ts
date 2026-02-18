@@ -79,9 +79,13 @@ const DEFAULT_CONFIG: CostInputs = {
 // Convert numeric deployment mode to string
 function normalizeConfig(config: Record<string, number>): CostInputs {
   return {
-    ...config,
+    indexSizeGB: config.indexSizeGB ?? 10,
+    monthlyQueries: config.monthlyQueries ?? 1_000_000,
+    monthlyWrites: config.monthlyWrites ?? 100_000,
+    maxSearchOCUs: config.maxSearchOCUs ?? 2,
+    maxIndexingOCUs: config.maxIndexingOCUs ?? 2,
     deploymentMode: config.deploymentMode === 0 ? "dev-test" : "production",
-  } as CostInputs;
+  };
 }
 
 export const opensearchProvider: PricingProvider<CostInputs> = {
@@ -92,8 +96,8 @@ export const opensearchProvider: PricingProvider<CostInputs> = {
   configFields: CONFIG_FIELDS,
   defaultConfig: DEFAULT_CONFIG,
   calculateCosts: (config: CostInputs): ProviderCostBreakdown => {
-    // Handle numeric deployment mode from UI
-    const normalizedConfig = typeof config.deploymentMode === "number"
+    // Handle numeric deployment mode from UI or missing/undefined values during provider transitions
+    const normalizedConfig = typeof config.deploymentMode === "number" || typeof config.deploymentMode === "undefined"
       ? normalizeConfig(config as unknown as Record<string, number>)
       : config;
 
