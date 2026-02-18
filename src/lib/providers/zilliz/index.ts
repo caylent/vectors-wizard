@@ -141,6 +141,6 @@ export const zillizProvider: PricingProvider<CostInputs> = {
     metadataBytes: universal.metadataBytes,
     monthlyQueries: universal.monthlyQueries,
     monthlyWrites: universal.monthlyWrites,
-    includeFreeTier: 0,
+    includeFreeTier: 1,
   }),
 };

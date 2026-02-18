@@ -17,27 +17,24 @@ export function useCalculator(
     return p;
   }, [providerId]);
 
-  // Track previous provider to detect changes
-  const prevProviderIdRef = useRef(providerId);
+  // Start in configurator mode if we have initial config (from shared link)
+  const [mode, setMode] = useState<CalculatorMode>(initialConfig ? "configurator" : "landing");
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  // Track which provider the config was computed for
+  const [configProviderId, setConfigProviderId] = useState(providerId);
 
   const [config, setConfig] = useState<Record<string, number>>(() => {
     if (initialConfig) return { ...initialConfig };
     return { ...provider.defaultConfig as Record<string, number> };
   });
 
-  // Start in configurator mode if we have initial config (from shared link)
-  const [mode, setMode] = useState<CalculatorMode>(initialConfig ? "configurator" : "landing");
-  const [activePreset, setActivePreset] = useState<string | null>(null);
-
   // Reset config when provider changes
-  useEffect(() => {
-    if (prevProviderIdRef.current !== providerId) {
-      prevProviderIdRef.current = providerId;
-      setConfig({ ...provider.defaultConfig as Record<string, number> });
-      setActivePreset(null);
-      // Don't reset mode - keep user in their current view
-    }
-  }, [providerId, provider]);
+  if (configProviderId !== providerId) {
+    setConfigProviderId(providerId);
+    setConfig({ ...provider.defaultConfig as Record<string, number> });
+    setActivePreset(null);
+  }
 
   const breakdown: ProviderCostBreakdown = useMemo(
     () => provider.calculateCosts(config),
@@ -93,7 +90,9 @@ export function useCalculator(
   }, [provider]);
 
   const activePresetRef = useRef(activePreset);
-  activePresetRef.current = activePreset;
+  useEffect(() => {
+    activePresetRef.current = activePreset;
+  }, [activePreset]);
 
   const handleExport = useCallback(() => {
     exportConfig(provider.id, config, activePresetRef.current);

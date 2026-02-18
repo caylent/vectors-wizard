@@ -56,6 +56,32 @@ describe('shareable-state', () => {
       const result = decodeShareableState(encoded);
       expect(result).toBeNull();
     });
+
+    it('should strip non-number config values', () => {
+      const malicious = { v: 1, p: 'pinecone', c: { numVectors: 100, bad: 'string', arr: [1, 2] } };
+      const encoded = Buffer.from(JSON.stringify(malicious)).toString('base64');
+      const result = decodeShareableState(encoded);
+      expect(result).not.toBeNull();
+      expect(result!.config).toEqual({ numVectors: 100 });
+      expect(result!.config).not.toHaveProperty('bad');
+      expect(result!.config).not.toHaveProperty('arr');
+    });
+
+    it('should strip NaN and Infinity values', () => {
+      // NaN and Infinity can't be represented in JSON, so we test null instead
+      const withNull = { v: 1, p: 'pinecone', c: { good: 42, bad: null } };
+      const encoded = Buffer.from(JSON.stringify(withNull)).toString('base64');
+      const result = decodeShareableState(encoded);
+      expect(result).not.toBeNull();
+      expect(result!.config).toEqual({ good: 42 });
+    });
+
+    it('should return null when config is null', () => {
+      const bad = { v: 1, p: 'pinecone', c: null };
+      const encoded = Buffer.from(JSON.stringify(bad)).toString('base64');
+      const result = decodeShareableState(encoded);
+      expect(result).toBeNull();
+    });
   });
 
   describe('roundtrip', () => {

@@ -43,7 +43,9 @@ export function ComparisonPanel({
   );
 
   // Calculate max cost for bar scaling
-  const maxCost = Math.max(...visibleComparisons.map((c) => c.monthlyCost));
+  const maxCost = visibleComparisons.length > 0
+    ? Math.max(...visibleComparisons.map((c) => c.monthlyCost))
+    : 0;
 
   const toggleProvider = (providerId: string) => {
     const newHidden = new Set(hiddenProviders);

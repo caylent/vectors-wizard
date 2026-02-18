@@ -71,14 +71,22 @@ export function decodeShareableState(
     }
 
     // Validate structure
-    if (typeof state.p !== "string" || typeof state.c !== "object") {
+    if (typeof state.p !== "string" || typeof state.c !== "object" || state.c === null) {
       console.warn("Invalid shareable state structure");
       return null;
     }
 
+    // Validate that all config values are finite numbers
+    const validatedConfig: Record<string, number> = {};
+    for (const [key, value] of Object.entries(state.c)) {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        validatedConfig[key] = value;
+      }
+    }
+
     return {
       providerId: state.p,
-      config: state.c,
+      config: validatedConfig,
     };
   } catch (error) {
     console.warn("Failed to decode shareable state:", error);

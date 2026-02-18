@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function ConfigToolbar({
   onExport,
@@ -16,6 +16,13 @@ export function ConfigToolbar({
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Auto-clear "Copied!" with cleanup on unmount
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,7 +44,6 @@ export function ConfigToolbar({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback: open in new tab
       window.open(url, "_blank");
