@@ -12,11 +12,11 @@
   --color-success: #97ca6f;
   --color-info: #5ba4f5;
   --color-warning: #f5c542;
-  --color-muted: #707078;
-  --color-muted-foreground: #8a8a94;
+  --color-muted: #888888;
+  --color-muted-foreground: #9e9e9e;
   --color-error: #F46E67;
   --color-text-primary: #f0ede8;
-  --color-text-secondary: #9a9aa0;
+  --color-text-secondary: #b3b3b3;
   --color-caylent-green: #cbefae;
   --color-caylent-green-hover: #d8f5bf;
   --color-caylent-green-active: #bee79e;
@@ -35,7 +35,7 @@
   --color-secondary: #a78bfa;
   --color-secondary-foreground: #0a0a0f;
   --color-card: #0f0f14;
-  --color-card-foreground: #e5e5e8;
+  --color-card-foreground: #e5e5e5;
   --color-destructive: #f87171;
   --color-destructive-foreground: #0a0a0f;
   --color-input: #1a1a22;
