@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCalculator } from "@/hooks/use-calculator";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { CalculatorShell } from "./CalculatorShell";
+import { ProviderSelector } from "./ProviderSelector";
 import { decodeShareableState, encodeShareableState } from "@/lib/providers/shareable-state";
 
 export function VectorCostCalculator({
@@ -83,6 +84,11 @@ export function VectorCostCalculator({
           </Link>
         </div>
       </header>
+
+      <ProviderSelector
+        currentProviderId={providerId}
+        onProviderChange={handleProviderChange}
+      />
 
       <main className="mx-auto max-w-[1320px] px-6 py-12 lg:py-16">
         <CalculatorShell
