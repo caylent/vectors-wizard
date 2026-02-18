@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #0a0a0f;
+  --color-background: #0b0b0b;
   --color-foreground: #d8d8d8;
-  --color-surface: #131318;
-  --color-surface-bright: #1c1c24;
+  --color-surface: #141414;
+  --color-surface-bright: #1e1e1e;
   --color-border: rgba(255, 255, 255, 0.08);
   --color-accent: #8555f0;
   --color-accent-dim: #643dd4;
@@ -31,14 +31,14 @@
   --color-viz-yellow: #fbbf24;
   /* shadcn-style semantic colors for visualizer components */
   --color-primary: #4da6ff;
-  --color-primary-foreground: #0a0a0f;
+  --color-primary-foreground: #0b0b0b;
   --color-secondary: #a78bfa;
-  --color-secondary-foreground: #0a0a0f;
-  --color-card: #0f0f14;
+  --color-secondary-foreground: #0b0b0b;
+  --color-card: #101010;
   --color-card-foreground: #e5e5e5;
   --color-destructive: #f87171;
-  --color-destructive-foreground: #0a0a0f;
-  --color-input: #1a1a22;
+  --color-destructive-foreground: #0b0b0b;
+  --color-input: #1a1a1a;
   --color-ring: #4da6ff;
   --font-sans: var(--font-roboto);
   --font-mono: var(--font-roboto-mono);
@@ -90,7 +90,7 @@ input[type="number"] {
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 85% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0a0f 0%, #0e0e14 100%);
+    linear-gradient(180deg, #0b0b0b 0%, #0e0e0e 100%);
 }
 
 /* ── Noise texture overlay ────────────────────────────────── */
