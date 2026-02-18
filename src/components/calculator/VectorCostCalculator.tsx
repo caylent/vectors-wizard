@@ -52,9 +52,9 @@ export function VectorCostCalculator({
   }, [providerId, debouncedConfig, state.mode]);
 
   return (
-    <div className={`cosmic-bg noise-overlay min-h-screen ${className ?? ""}`}>
+    <div className={`min-h-screen bg-background ${className ?? ""}`}>
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm">
+      <header className="border-b border-border/50 bg-background">
         <div className="mx-auto flex max-w-[1320px] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-bright">

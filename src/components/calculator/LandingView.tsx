@@ -6,16 +6,9 @@ export function LandingView({
   onSelect: (mode: CalculatorMode) => void;
 }) {
   return (
-    <div className="relative flex min-h-[80vh] items-center justify-center overflow-hidden">
-      {/* Decorative orbs */}
-      <div className="orb orb-purple -top-32 -left-40" />
-      <div className="orb orb-green -right-24 bottom-10" />
-
-      {/* Dot grid */}
-      <div className="dot-grid" />
-
+    <div className="relative flex min-h-[80vh] items-center justify-center">
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center">
         <div className="animate-fade-in-up mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-surface-bright ring-1 ring-border">
           <svg
             className="h-12 w-12 text-text-secondary"
