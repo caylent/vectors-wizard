@@ -6,6 +6,33 @@ import { CostDistributionBar } from "./CostDistributionBar";
 
 const ACCENT_COLORS = ["text-accent", "text-info", "text-success", "text-warning"];
 
+function buildConfigSummary(config: Record<string, number>): string {
+  const parts: string[] = [];
+
+  // Primary metric: vector/object count or storage size
+  if (config.numVectors > 0) {
+    parts.push(`${formatNumber(config.numVectors)} vectors`);
+  } else if (config.numObjects > 0) {
+    parts.push(`${formatNumber(config.numObjects)} objects`);
+  } else if (config.indexSizeGB > 0) {
+    parts.push(`${formatNumber(config.indexSizeGB)} GB index`);
+  } else if (config.storageGB > 0) {
+    parts.push(`${formatNumber(config.storageGB)} GB storage`);
+  }
+
+  // Dimensions (only for providers that have them)
+  if (config.dimensions > 0) {
+    parts.push(`${config.dimensions}-dim`);
+  }
+
+  // Throughput metric
+  if (config.monthlyQueries > 0) {
+    parts.push(`${formatNumber(config.monthlyQueries)} queries/mo`);
+  }
+
+  return parts.join(" \u00b7 "); // middot
+}
+
 export function ResultsPanel({
   breakdown,
   config,
@@ -15,6 +42,8 @@ export function ResultsPanel({
   config: Record<string, number>;
   provider: PricingProvider<Record<string, number>>;
 }) {
+  const summary = buildConfigSummary(config);
+
   return (
     <div className="space-y-6">
       {/* Total cost card */}
@@ -25,11 +54,9 @@ export function ResultsPanel({
         <div className="font-mono text-5xl font-medium text-caylent-green">
           {formatCurrency(breakdown.totalMonthlyCost)}
         </div>
-        <div className="mt-1 text-xs text-muted">
-          {formatNumber(config.numVectors ?? 0)} vectors &middot;{" "}
-          {config.dimensions ?? 0}-dim &middot;{" "}
-          {formatNumber(config.monthlyQueries ?? 0)} queries/mo
-        </div>
+        {summary && (
+          <div className="mt-1 text-xs text-muted">{summary}</div>
+        )}
         <div className="mt-5">
           <CostDistributionBar lineItems={breakdown.lineItems} />
         </div>
