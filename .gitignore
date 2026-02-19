@@ -46,3 +46,6 @@ capture-twitter.mjs
 twitter-captures/
 twitter-captures.zip
 public/twitter-*.html
+record.mjs
+docs/raw-screencast.webm
+docs/vectors-wizard-demo.mp4
