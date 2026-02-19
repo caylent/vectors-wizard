@@ -12,12 +12,14 @@ describe('opensearch/pricing', () => {
   };
 
   describe('calculateCosts', () => {
-    it('should calculate compute cost based on OCUs', () => {
+    it('should calculate compute cost from configured OCUs', () => {
       const result = calculateCosts(baseConfig);
 
-      // At minimum, production uses 2 OCUs (1 search + 1 indexing)
-      // 2 OCUs * $0.24/hour * 730 hours = ~$350
-      expect(result.compute.monthlyCost).toBeGreaterThanOrEqual(350);
+      // 2 search + 2 indexing = 4 OCUs * $0.24/hour * 730 hours = $700.80
+      expect(result.compute.searchOCUs).toBe(2);
+      expect(result.compute.indexingOCUs).toBe(2);
+      expect(result.compute.totalOCUs).toBe(4);
+      expect(result.compute.monthlyCost).toBeCloseTo(4 * 0.24 * 730, 0);
     });
 
     it('should calculate storage cost', () => {
@@ -31,46 +33,52 @@ describe('opensearch/pricing', () => {
       const devConfig: CostInputs = {
         ...baseConfig,
         deploymentMode: 'dev-test',
+        maxSearchOCUs: 0.5,
+        maxIndexingOCUs: 0.5,
       };
 
       const prodResult = calculateCosts(baseConfig);
       const devResult = calculateCosts(devConfig);
 
-      // Dev/test should have lower compute costs
       expect(devResult.compute.monthlyCost).toBeLessThan(
         prodResult.compute.monthlyCost
       );
     });
 
-    it('should scale OCUs with query volume', () => {
-      const lowQueries = calculateCosts({
-        ...baseConfig,
-        monthlyQueries: 100000,
-        maxSearchOCUs: 10,
-      });
-
-      const highQueries = calculateCosts({
-        ...baseConfig,
-        monthlyQueries: 100000000,
-        maxSearchOCUs: 10,
-      });
-
-      // High queries should use more search OCUs
-      expect(highQueries.compute.searchOCUs).toBeGreaterThanOrEqual(
-        lowQueries.compute.searchOCUs
-      );
-    });
-
-    it('should respect max OCU limits', () => {
+    it('should enforce production minimums (1 OCU each)', () => {
       const result = calculateCosts({
         ...baseConfig,
-        monthlyQueries: 1000000000, // Very high
-        maxSearchOCUs: 3,
-        maxIndexingOCUs: 2,
+        maxSearchOCUs: 0.5,
+        maxIndexingOCUs: 0.5,
       });
 
-      expect(result.compute.searchOCUs).toBeLessThanOrEqual(3);
-      expect(result.compute.indexingOCUs).toBeLessThanOrEqual(2);
+      // Production minimum: 1 search + 1 indexing
+      expect(result.compute.searchOCUs).toBe(1);
+      expect(result.compute.indexingOCUs).toBe(1);
+    });
+
+    it('should enforce dev-test minimums (0.5 OCU each)', () => {
+      const result = calculateCosts({
+        ...baseConfig,
+        deploymentMode: 'dev-test',
+        maxSearchOCUs: 0,
+        maxIndexingOCUs: 0,
+      });
+
+      expect(result.compute.searchOCUs).toBe(0.5);
+      expect(result.compute.indexingOCUs).toBe(0.5);
+    });
+
+    it('should cost ~$1400 for 8 OCUs', () => {
+      const result = calculateCosts({
+        ...baseConfig,
+        maxSearchOCUs: 4,
+        maxIndexingOCUs: 4,
+      });
+
+      // 8 OCUs * $0.24/hour * 730 hours = $1,401.60
+      expect(result.compute.totalOCUs).toBe(8);
+      expect(result.compute.monthlyCost).toBeCloseTo(1401.6, 0);
     });
 
     it('should have minimum costs around $175 for dev-test', () => {
@@ -79,12 +87,12 @@ describe('opensearch/pricing', () => {
         deploymentMode: 'dev-test',
         monthlyQueries: 1000,
         monthlyWrites: 1000,
-        maxSearchOCUs: 1,
-        maxIndexingOCUs: 1,
+        maxSearchOCUs: 0.5,
+        maxIndexingOCUs: 0.5,
       };
 
       const result = calculateCosts(devConfig);
-      // ~1 OCU * $0.24 * 730 = ~$175
+      // 1 OCU * $0.24 * 730 = ~$175
       expect(result.totalMonthlyCost).toBeGreaterThan(150);
       expect(result.totalMonthlyCost).toBeLessThan(200);
     });

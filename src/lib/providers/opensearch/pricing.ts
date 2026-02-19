@@ -76,15 +76,13 @@ export function calculateCosts(inputs: CostInputs): CostBreakdown {
   const deploymentMode: "production" | "dev-test" =
     inputs.deploymentMode === "dev-test" ? "dev-test" : "production";
 
-  // Estimate OCUs based on workload
-  const searchOCUs = Math.min(
-    safe.maxSearchOCUs,
-    estimateSearchOCUs(safe.monthlyQueries, deploymentMode)
-  );
-  const indexingOCUs = Math.min(
-    safe.maxIndexingOCUs,
-    estimateIndexingOCUs(safe.monthlyWrites, deploymentMode)
-  );
+  // Use the configured OCU values directly — these represent what the user
+  // expects to allocate. Enforce minimum OCUs for the deployment mode.
+  const minOCUs = deploymentMode === "production"
+    ? PRICING.minimumOCUs.production / 2  // split evenly: 1 search + 1 indexing
+    : PRICING.minimumOCUs.devTest / 2;    // 0.5 each
+  const searchOCUs = Math.max(minOCUs, safe.maxSearchOCUs);
+  const indexingOCUs = Math.max(minOCUs, safe.maxIndexingOCUs);
 
   const totalOCUs = searchOCUs + indexingOCUs;
   const computeMonthlyCost = totalOCUs * PRICING.ocu.perHour * PRICING.hoursPerMonth;

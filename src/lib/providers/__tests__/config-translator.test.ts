@@ -211,8 +211,8 @@ describe("normalizeConfig via calculateCosts", () => {
       deploymentMode: 0,
       monthlyQueries: 100_000,
       monthlyWrites: 10_000,
-      maxSearchOCUs: 2,
-      maxIndexingOCUs: 2,
+      maxSearchOCUs: 0.5,
+      maxIndexingOCUs: 0.5,
     } as Record<string, number>);
     expect(devResult.totalMonthlyCost).toBeGreaterThan(0);
 
@@ -221,9 +221,10 @@ describe("normalizeConfig via calculateCosts", () => {
       deploymentMode: 1,
       monthlyQueries: 100_000,
       monthlyWrites: 10_000,
-      maxSearchOCUs: 2,
-      maxIndexingOCUs: 2,
+      maxSearchOCUs: 0.5,
+      maxIndexingOCUs: 0.5,
     } as Record<string, number>);
+    // Production enforces minimum 1 OCU each; dev-test allows 0.5 each
     expect(prodResult.totalMonthlyCost).toBeGreaterThan(devResult.totalMonthlyCost);
   });
 
@@ -377,10 +378,10 @@ describe("toUniversalConfig / fromUniversalConfig roundtrip", () => {
 // ---------------------------------------------------------------------------
 
 describe("Zilliz free tier in comparisons", () => {
-  it("fromUniversalConfig enables free tier", () => {
+  it("fromUniversalConfig excludes free tier for fair comparison", () => {
     const provider = getProvider("zilliz")!;
     const config = provider.fromUniversalConfig!(TYPICAL_UNIVERSAL);
-    expect(config.includeFreeTier).toBe(1);
+    expect(config.includeFreeTier).toBe(0);
   });
 });
 

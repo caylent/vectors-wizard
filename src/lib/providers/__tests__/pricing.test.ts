@@ -503,13 +503,13 @@ describe("OpenSearch Serverless pricing", () => {
     deploymentMode: "production",
     monthlyQueries: 0,
     monthlyWrites: 0,
-    maxSearchOCUs: 10,
-    maxIndexingOCUs: 10,
+    maxSearchOCUs: 1,
+    maxIndexingOCUs: 1,
   };
 
   it("has minimum OCU cost even with zero workload (production)", () => {
     const result = calculateOpenSearchCosts(minimalInputs);
-    // production: 1 search OCU + 1 indexing OCU = 2 OCUs minimum
+    // production minimum: 1 search OCU + 1 indexing OCU = 2 OCUs
     // 2 * 0.24 * 730 = $350.40
     expect(result.compute.totalOCUs).toBe(2);
     expect(result.compute.monthlyCost).toBeCloseTo(
@@ -523,6 +523,8 @@ describe("OpenSearch Serverless pricing", () => {
     const result = calculateOpenSearchCosts({
       ...minimalInputs,
       deploymentMode: "dev-test",
+      maxSearchOCUs: 0.5,
+      maxIndexingOCUs: 0.5,
     });
     // dev-test: 0.5 search + 0.5 indexing = 1 OCU
     expect(result.compute.totalOCUs).toBe(1);
