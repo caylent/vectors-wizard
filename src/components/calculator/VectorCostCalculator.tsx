@@ -85,10 +85,12 @@ export function VectorCostCalculator({
         </div>
       </header>
 
-      <ProviderSelector
-        currentProviderId={providerId}
-        onProviderChange={handleProviderChange}
-      />
+      {state.mode !== "landing" && (
+        <ProviderSelector
+          currentProviderId={providerId}
+          onProviderChange={handleProviderChange}
+        />
+      )}
 
       <main className="mx-auto max-w-[1320px] px-6 py-12 lg:py-16">
         <CalculatorShell
