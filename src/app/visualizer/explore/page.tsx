@@ -98,7 +98,7 @@ function BottomPanel({ indexType }: { indexType: IndexType }) {
 
 const INDEX_INFO: Record<IndexType, { title: string; subtitle: string }> = {
   hnsw: {
-    title: "HNSW + Matryoshka Explorer",
+    title: "HNSW Explorer",
     subtitle: "Concentric spheres: inner core = entry point (sparse) → outer shell = base layer (dense)",
   },
   ivf: {

@@ -33,7 +33,7 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     name: "Nomic Embed",
     dimensions: 768,
     size: "~130MB",
-    description: "Larger model with Matryoshka support",
+    description: "Larger model with dimension truncation support",
   },
 ];
 

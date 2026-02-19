@@ -109,7 +109,7 @@ export function MRLPanel() {
         <CardTitle>Dimensions</CardTitle>
       </CardHeader>
       <CardDescription>
-        Matryoshka truncation. Lower dims = less storage, faster search, slight accuracy loss.
+        Dimension truncation. Lower dims = less storage, faster search, slight accuracy loss.
       </CardDescription>
       <CardContent className="space-y-2">
         <Slider

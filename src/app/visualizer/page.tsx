@@ -52,7 +52,7 @@ export default function VisualizerHome() {
             </Link>
           </nav>
           <h1 className="text-lg font-bold tracking-tight" style={{ textShadow: "0 0 20px rgba(77,166,255,0.3)" }}>
-            HNSW + Matryoshka Explorer
+            HNSW Explorer
           </h1>
           <p className="text-[0.62rem] text-muted-foreground mt-0.5">
             Concentric spheres: inner core = entry point (sparse) → outer shell = base layer (dense)
