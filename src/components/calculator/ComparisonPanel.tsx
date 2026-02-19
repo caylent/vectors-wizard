@@ -25,7 +25,6 @@ export function ComparisonPanel({
   currentConfig,
   onSelectProvider,
 }: ComparisonPanelProps) {
-  const [hiddenProviders, setHiddenProviders] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Debounce config to avoid running 9 provider calculations on every keystroke
@@ -37,101 +36,74 @@ export function ComparisonPanel({
     return compareAllProviders(universal);
   }, [currentProviderId, debouncedConfig]);
 
-  // Filter visible providers
-  const visibleComparisons = comparisons.filter(
-    (c) => !hiddenProviders.has(c.providerId)
-  );
-
   // Calculate max cost for bar scaling
-  const maxCost = visibleComparisons.length > 0
-    ? Math.max(...visibleComparisons.map((c) => c.monthlyCost))
+  const maxCost = comparisons.length > 0
+    ? Math.max(...comparisons.map((c) => c.monthlyCost))
     : 0;
 
-  const toggleProvider = (providerId: string) => {
-    const newHidden = new Set(hiddenProviders);
-    if (newHidden.has(providerId)) {
-      newHidden.delete(providerId);
-    } else {
-      newHidden.add(providerId);
-    }
-    setHiddenProviders(newHidden);
-  };
-
-  const showAll = () => setHiddenProviders(new Set());
-
   // Get cheapest provider
-  const cheapest = visibleComparisons.find((c) => c.isApplicable);
+  const cheapest = comparisons.find((c) => c.isApplicable);
 
   return (
-    <div className="rounded-2xl border border-border bg-surface/50 backdrop-blur-sm">
-      {/* Header */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-expanded={isExpanded}
-        className="flex w-full items-center justify-between p-4 text-left"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8555f0]/20">
-            <svg
-              className="h-4 w-4 text-[#8555f0]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-medium text-text-primary">Compare Providers</h3>
-            <p className="text-xs text-muted">
-              {visibleComparisons.length} providers · Cheapest: {cheapest?.name ?? "N/A"}
-            </p>
-          </div>
-        </div>
-        <svg
-          className={`h-5 w-5 text-text-secondary transition-transform ${isExpanded ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isExpanded && (
-        <div className="border-t border-border p-4">
-          {/* Filter chips */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            {hiddenProviders.size > 0 && (
-              <button
-                onClick={showAll}
-                className="rounded-full bg-[#8555f0]/20 px-3 py-1 text-xs font-medium text-[#8555f0] hover:bg-[#8555f0]/30"
-              >
-                Show all ({hiddenProviders.size} hidden)
-              </button>
-            )}
-            {comparisons.map((c) => (
+    <div className="rounded-2xl border border-border bg-surface/50">
+      {/* Provider chips — always visible */}
+      <div className="p-4 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {comparisons.map((c) => {
+            const isCurrent = c.providerId === currentProviderId;
+            const isCheapest = c === cheapest;
+            return (
               <button
                 key={c.providerId}
-                onClick={() => toggleProvider(c.providerId)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  hiddenProviders.has(c.providerId)
-                    ? "bg-surface-bright text-muted line-through"
-                    : c.providerId === currentProviderId
-                    ? "bg-[#8555f0] text-white"
-                    : "bg-surface-bright text-text-secondary hover:text-text-primary"
+                onClick={() => onSelectProvider(c.providerId)}
+                className={`flex items-center gap-1.5 rounded-[4px] px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  isCurrent
+                    ? "border border-[#8555f0]/50 bg-[#8555f0]/15 text-[#8555f0]"
+                    : "border border-border bg-surface text-text-secondary hover:border-text-secondary/30 hover:text-text-primary"
                 }`}
               >
-                {c.name}
+                <span>{c.name}</span>
+                {c.isApplicable && (
+                  <span className={`font-mono text-[10px] ${
+                    isCurrent ? "text-[#8555f0]/70" : isCheapest ? "text-[#34d399]" : "text-muted"
+                  }`}>
+                    {formatCurrency(c.monthlyCost)}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* Comparison bars */}
+      {/* Expand/collapse toggle for detailed comparison */}
+      <div className="border-t border-border">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          className="flex w-full items-center justify-between px-4 py-2.5 text-left"
+        >
+          <span className="text-xs text-muted">
+            {isExpanded ? "Hide" : "Show"} cost comparison
+            {cheapest ? ` · Cheapest: ${cheapest.name}` : ""}
+          </span>
+          <svg
+            className={`h-4 w-4 text-muted transition-transform ${isExpanded ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Detailed comparison bars — collapsible */}
+      {isExpanded && (
+        <div className="border-t border-border p-4">
           <div className="space-y-3">
-            {visibleComparisons.map((comparison, index) => (
+            {comparisons.map((comparison, index) => (
               <ComparisonBar
                 key={comparison.providerId}
                 comparison={comparison}
