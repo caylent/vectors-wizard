@@ -4,6 +4,8 @@ Compare monthly costs across 9 vector database providers. Built by [Caylent](htt
 
 **Live demo**: [vectors-wizard.caylent.tech](https://vectors-wizard.caylent.tech)
 
+![Landing page](docs/screenshots/landing.png)
+
 ## Supported Providers
 
 | Provider | Pricing Model |
@@ -21,12 +23,23 @@ Compare monthly costs across 9 vector database providers. Built by [Caylent](htt
 ## Features
 
 - **Guided Wizard** — chatbot-style questionnaire that walks through use case, embedding model, and workload parameters
-- **Manual Configurator** — direct control over all pricing inputs
-- **Cross-Provider Comparison** — side-by-side cost comparison across all providers with the same workload
+
+  ![Guided wizard](docs/screenshots/wizard.png)
+
+- **Manual Configurator** — direct control over all pricing inputs with real-time cost breakdown
+
+  ![Manual configurator](docs/screenshots/configurator.png)
+
+- **Cross-Provider Comparison** — side-by-side cost comparison across all 9 providers with the same workload
+
+  ![Provider comparison](docs/screenshots/comparison.png)
+
 - **Quickstart Presets** — pre-configured templates for common use cases (RAG chatbot, product search, knowledge base, image similarity)
 - **Shareable Links** — URL-encoded state for sharing configurations
 - **Import/Export** — save and load configurations as JSON
 - **3D Visualizer** — interactive Three.js visualizations of HNSW and IVF index algorithms
+
+  ![HNSW visualizer](docs/screenshots/visualizer.png)
 
 ## Quick Start
 
