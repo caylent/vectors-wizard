@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { MetricBar } from "@/components/ui/metric-bar";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useIndexStore, DIMENSION_OPTIONS } from "@/stores/indexStore";
 import { useVisualizationStore } from "@/stores/visualizationStore";
 import {
@@ -50,7 +51,7 @@ export function BuildParamsPanel() {
       </CardDescription>
       <CardContent className="space-y-2">
         <Slider
-          label="M (connections/node)"
+          label={<>M (connections/node)<Tooltip text="Maximum bidirectional links per node. Higher M means better recall but more memory and slower builds. Layer 0 uses 2xM connections, upper layers use M. Typical range: 4-48." /></>}
           value={hnsw.M}
           min={2}
           max={48}
@@ -58,7 +59,7 @@ export function BuildParamsPanel() {
           onChange={(v) => setHNSWParam("M", Math.round(v))}
         />
         <Slider
-          label="ef_construction"
+          label={<>ef_construction<Tooltip text="Beam width used when building the index. Higher values produce a better-connected graph at the cost of slower index construction. Typical range: 64-512." /></>}
           value={hnsw.efConstruction}
           min={16}
           max={512}
@@ -78,7 +79,7 @@ export function BuildParamsPanel() {
         <div className="h-px bg-border my-2" />
 
         <MetricBar
-          label="Recall"
+          label={<>Recall<Tooltip text="The percentage of true nearest neighbors found by the approximate search compared to an exact brute-force search. 100% recall means the approximate search found all the same results as exact search." /></>}
           value={`~${recallPercent}%`}
           percent={recallPercent}
           color="blue"
@@ -105,7 +106,7 @@ export function MRLPanel() {
   return (
     <Card>
       <CardHeader>
-        <Badge variant="purple">MRL</Badge>
+        <Badge variant="purple">MRL<Tooltip text="Matryoshka Representation Learning allows truncating embeddings to fewer dimensions while preserving search quality. Lower dimensions reduce storage and speed up queries." /></Badge>
         <CardTitle>Dimensions</CardTitle>
       </CardHeader>
       <CardDescription>
@@ -207,7 +208,7 @@ export function SearchParamsPanel() {
       </CardDescription>
       <CardContent className="space-y-2">
         <Slider
-          label="ef_search (candidates)"
+          label={<>ef_search (candidates)<Tooltip text="Number of candidate nodes explored per query. Higher values improve recall (accuracy) but increase latency. Must be >= k (number of results requested). Typical range: 10-200." /></>}
           value={hnsw.efSearch}
           min={4}
           max={200}
@@ -219,19 +220,19 @@ export function SearchParamsPanel() {
         <div className="h-px bg-border my-2" />
 
         <MetricBar
-          label="Recall"
+          label={<>Recall<Tooltip text="The percentage of true nearest neighbors found by the approximate search compared to an exact brute-force search. 100% recall means the approximate search found all the same results as exact search." /></>}
           value={`~${recallPercent}%`}
           percent={recallPercent}
           color="blue"
         />
         <MetricBar
-          label="Latency"
+          label={<>Latency<Tooltip text="Estimated time to complete a single query. Lower is better. Increases with higher efSearch, more vectors, and higher dimensions." /></>}
           value={latencyDisplay}
           percent={Math.min(100, metrics.queryLatencyMs / 50 * 100)}
           color="orange"
         />
         <MetricBar
-          label="QPS"
+          label={<>QPS<Tooltip text="Queries Per Second -- the estimated throughput of the index. Higher is better. Affected by vector count, dimensions, M, and efSearch." /></>}
           value={qpsDisplay}
           percent={Math.min(100, metrics.qps / 15000 * 100)}
           color="green"
@@ -255,8 +256,8 @@ export function ResourcesPanel() {
   return (
     <div className="flex gap-2.5 justify-center flex-wrap">
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          Vectors
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          Vectors<Tooltip text="Raw vector data size: number of vectors x dimensions x 4 bytes (32-bit floats)." />
         </div>
         <div className="text-sm font-bold text-viz-blue">
           {formatBytes(metrics.vectorStorageBytes)}
@@ -267,8 +268,8 @@ export function ResourcesPanel() {
       </Card>
 
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          Graph
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          Graph<Tooltip text="HNSW graph overhead: approximately vectors x M x 2 x 8 bytes for storing neighbor connection lists." />
         </div>
         <div className="text-sm font-bold text-viz-purple">
           {formatBytes(metrics.graphStorageBytes)}
@@ -291,8 +292,8 @@ export function ResourcesPanel() {
       </Card>
 
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          RAM
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          RAM<Tooltip text="Estimated memory needed at runtime. Typically ~1.3x the total index size to account for working memory during search." />
         </div>
         <div className="text-sm font-bold text-viz-green">
           {formatBytes(metrics.ramUsageBytes)}

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { MetricBar } from "@/components/ui/metric-bar";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useIndexStore } from "@/stores/indexStore";
 import { useVisualizationStore } from "@/stores/visualizationStore";
 import { calculateIVFMetrics } from "@/lib/visualization/ivf-layout";
@@ -31,7 +32,7 @@ export function IVFBuildPanel() {
       </CardDescription>
       <CardContent className="space-y-2">
         <Slider
-          label="nlist (clusters)"
+          label={<>nlist (clusters)<Tooltip text="Number of Voronoi cells created by k-means clustering during index build. More clusters means finer partitioning. Should scale with dataset size -- a common rule of thumb is sqrt(N). Typical range: 10-1,000." /></>}
           value={ivf.nlist}
           min={10}
           max={1000}
@@ -52,7 +53,7 @@ export function IVFBuildPanel() {
         <div className="h-px bg-border my-2" />
 
         <MetricBar
-          label="Recall"
+          label={<>Recall<Tooltip text="The percentage of true nearest neighbors found compared to exact search. Increases with higher nprobe but with diminishing returns." /></>}
           value={`~${recallPercent}%`}
           percent={recallPercent}
           color="blue"
@@ -94,7 +95,7 @@ export function IVFSearchPanel() {
       </CardDescription>
       <CardContent className="space-y-2">
         <Slider
-          label="nprobe (search breadth)"
+          label={<>nprobe (search breadth)<Tooltip text="Number of clusters searched per query. Higher nprobe improves recall but increases latency. Setting nprobe = nlist is equivalent to brute-force search. Typical range: 1-100." /></>}
           value={ivf.nprobe}
           min={1}
           max={Math.min(ivf.nlist, 100)}
@@ -106,19 +107,19 @@ export function IVFSearchPanel() {
         <div className="h-px bg-border my-2" />
 
         <MetricBar
-          label="Recall"
+          label={<>Recall<Tooltip text="The percentage of true nearest neighbors found compared to exact search. Increases with higher nprobe but with diminishing returns." /></>}
           value={`~${recallPercent}%`}
           percent={recallPercent}
           color="blue"
         />
         <MetricBar
-          label="Latency"
+          label={<>Latency<Tooltip text="Estimated query response time. Proportional to nprobe x (vectors / nlist) -- more probes and larger clusters mean slower queries." /></>}
           value={metrics.queryLatencyMs < 1 ? "<1ms" : `~${metrics.queryLatencyMs.toFixed(1)}ms`}
           percent={Math.min(100, metrics.queryLatencyMs * 10)}
           color="orange"
         />
         <MetricBar
-          label="QPS"
+          label={<>QPS<Tooltip text="Queries Per Second -- estimated throughput. Decreases as nprobe increases since more clusters must be searched." /></>}
           value={qps > 1000 ? `${(qps / 1000).toFixed(1)}K` : `${qps}`}
           percent={Math.min(100, qps / 100)}
           color="green"
@@ -162,8 +163,8 @@ export function IVFResourcesPanel() {
       </Card>
 
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          Centroids
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          Centroids<Tooltip text="Storage for cluster center vectors: nlist x dimensions x 4 bytes. These are the reference points for determining which cluster a query vector is closest to." />
         </div>
         <div className="text-sm font-bold text-viz-purple">
           {formatBytes(metrics.centroidStorageBytes)}
@@ -174,8 +175,8 @@ export function IVFResourcesPanel() {
       </Card>
 
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          Inv. Lists
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          Inv. Lists<Tooltip text="Storage for mapping vectors to clusters: N x 8 bytes for vector IDs and offset pointers. Each cluster maintains a list of which vectors belong to it." />
         </div>
         <div className="text-sm font-bold text-viz-orange">
           {formatBytes(metrics.invertedListsBytes)}
@@ -198,8 +199,8 @@ export function IVFResourcesPanel() {
       </Card>
 
       <Card className="text-center min-w-[105px] px-3.5 py-2.5">
-        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5">
-          Build Time
+        <div className="text-[0.55rem] text-muted-foreground uppercase tracking-wide mb-0.5 flex items-center justify-center">
+          Build Time<Tooltip text="Dominated by k-means clustering iterations. Complexity scales with number of vectors, dimensions, nlist, and number of iterations." />
         </div>
         <div className="text-sm font-bold text-foreground">
           {formatTime(metrics.buildTimeSeconds)}

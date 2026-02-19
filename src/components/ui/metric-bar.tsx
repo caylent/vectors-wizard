@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface MetricBarProps {
-  label: string;
+  label: React.ReactNode;
   value: string;
   percent: number;
   color?: "blue" | "purple" | "orange" | "green" | "red";
@@ -51,7 +51,7 @@ export function MetricBar({
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
       <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", colors.dot)} />
-      <span className="text-[0.58rem] text-muted-foreground w-11 flex-shrink-0">
+      <span className="text-[0.58rem] text-muted-foreground min-w-11 flex-shrink-0">
         {label}
       </span>
       <div className="metric-bar">
