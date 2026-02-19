@@ -26,7 +26,7 @@ export function ComparisonPanel({
   onSelectProvider,
 }: ComparisonPanelProps) {
   const [hiddenProviders, setHiddenProviders] = useState<Set<string>>(new Set());
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Debounce config to avoid running 9 provider calculations on every keystroke
   const debouncedConfig = useDebouncedValue(currentConfig, 150);
