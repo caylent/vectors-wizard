@@ -1,14 +1,32 @@
 # Vectors Wizard
 
-A cost calculator for Amazon S3 Vectors that helps estimate monthly operational costs for vector workloads.
+Compare monthly costs across 9 vector database providers. Built by [Caylent](https://caylent.com).
+
+**Live demo**: [vectors-wizard.vercel.app](https://vectors-wizard.vercel.app)
+
+## Supported Providers
+
+| Provider | Pricing Model |
+|----------|--------------|
+| Amazon S3 Vectors | Storage + PUT + query API + tiered query data |
+| Amazon OpenSearch Serverless | OCU-hours + S3 storage |
+| Pinecone | Pods/serverless, storage + compute |
+| Weaviate Cloud | Per-dimension pricing + SLA tiers |
+| Zilliz Cloud | CU-based compute + storage |
+| TurboPuffer | Storage + read/write GB + plan minimums |
+| MongoDB Atlas | Flex/Dedicated cluster tiers |
+| MongoDB on EC2 | EC2 instances + EBS storage |
+| Milvus on EC2 | EC2 instances + EBS storage |
 
 ## Features
 
-- **Guided Wizard** - Interactive questionnaire that walks through use case, embedding model, and workload parameters
-- **Manual Configurator** - Direct control over all pricing inputs for advanced users
-- **Quickstart Presets** - Pre-configured templates for common use cases (RAG chatbot, product search, knowledge base, image similarity)
-- **Real-time Cost Breakdown** - Itemized costs for storage, writes, queries, and embeddings
-- **Import/Export** - Save and share configurations as JSON
+- **Guided Wizard** — chatbot-style questionnaire that walks through use case, embedding model, and workload parameters
+- **Manual Configurator** — direct control over all pricing inputs
+- **Cross-Provider Comparison** — side-by-side cost comparison across all providers with the same workload
+- **Quickstart Presets** — pre-configured templates for common use cases (RAG chatbot, product search, knowledge base, image similarity)
+- **Shareable Links** — URL-encoded state for sharing configurations
+- **Import/Export** — save and load configurations as JSON
+- **3D Visualizer** — interactive Three.js visualizations of HNSW and IVF index algorithms
 
 ## Quick Start
 
@@ -19,29 +37,33 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## How It Works
-
-The calculator estimates costs across four dimensions:
-
-| Component | What it measures |
-|-----------|------------------|
-| **Storage** | Monthly cost to store vectors (based on count, dimensions, metadata) |
-| **Writes** | Cost to ingest/update vectors |
-| **Queries** | API call costs + data scanned per query |
-| **Embeddings** | Token costs for your embedding model (optional) |
-
 ## Architecture
 
-Built with Next.js 16, React 19, and Tailwind CSS.
+Built with Next.js 16, React 19, and Tailwind CSS. No external state management libraries.
 
-The core is a **provider abstraction** (`src/lib/providers/`) that makes it easy to add calculators for other vector databases. Each provider defines:
-- Pricing rates and calculation logic
-- Configuration fields
-- Wizard steps and presets
+### Provider System
 
-State is managed via two hooks:
-- `useCalculator` - Config, mode switching, cost computation
-- `useWizard` - Conversation flow and step progression
+The core is a pluggable provider abstraction in `src/lib/providers/`. Each provider implements `PricingProvider<TConfig>` and defines:
+
+- **Pricing logic** — rates and cost calculation (`pricing.ts`)
+- **Config fields** — UI form definition (`index.ts`)
+- **Wizard steps** — guided questionnaire flow (`wizard-steps.ts`)
+- **Presets** — example configurations (`presets.ts`)
+- **Cross-provider translation** — `toUniversalConfig` / `fromUniversalConfig` for comparison
+
+### State Management
+
+Two custom hooks manage all state:
+
+- `useCalculator` — config, mode switching (landing/wizard/configurator), cost computation via `useMemo`
+- `useWizard` — conversation flow, step tracking, branching logic, config patching
+
+### Visualizer
+
+Interactive 3D visualizations at `/visualizer` using `@react-three/fiber`:
+
+- **HNSW** — hierarchical navigable small world graph with animated search traversal
+- **IVF** — inverted file index with centroid-based nearest neighbor search
 
 ## Scripts
 
@@ -49,4 +71,9 @@ State is managed via two hooks:
 npm run dev      # Development server
 npm run build    # Production build
 npm run lint     # ESLint
+npm test         # Run tests (vitest)
 ```
+
+## License
+
+[MIT](LICENSE)
