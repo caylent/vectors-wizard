@@ -2,7 +2,7 @@
 
 Compare monthly costs across 9 vector database providers. Built by [Caylent](https://caylent.com).
 
-**Live demo**: [vectors-wizard.vercel.app](https://vectors-wizard.vercel.app)
+**Live demo**: [vectors-wizard.caylent.tech](https://vectors-wizard.caylent.tech)
 
 ## Supported Providers
 
